@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "rs32.h"
+
 volatile int STOP=FALSE;
 
 
@@ -47,9 +49,9 @@ int envia_trama(char *frame, char *data, int data_size){
 
 int main(int argc, char** argv)
 {
-    int fd,c, res,n=0;
+    int fd,c, res,n=0,s=0;
     struct termios oldtio,newtio;
-    char buf[255];
+    char buf[PAYLOAD],data[PAYLOAD];
     int i, sum = 0, speed = 0;
 
 	char frame1[MAX_FRAME]={0x7e};
@@ -108,14 +110,16 @@ int main(int argc, char** argv)
 
 	// Código aula 2
 
-	scanf("Caracteres a enviar: %s",data);
+	printf("Data to send: ");
+	//s=scanf("%s",data);
+	s=fgets(data,255,stdin);
+	puts(data);
+
 	if(cria_trama(frame1,0x03))
 	{
-		envia_trama(frame1,"Ola trama!",10);
+		envia_trama(frame1,data,strlen(data));
 	}
 	//printf("Primeiro valor da trama: %x\n",frame1[0]);
-	
-	printf("%s\n",frame1);
 	res=write(fd,frame1,MAX_FRAME);
 
 
