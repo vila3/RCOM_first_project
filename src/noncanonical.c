@@ -75,6 +75,8 @@ int main(int argc, char** argv)
 	int n;
 	n =	receive_frame(fd, buf, BUFF_SIZE);
 	
+	printf("%s\n", buf);
+	
 	read_frame(buf, package, &from_address);
 	
 
@@ -97,12 +99,13 @@ int receive_frame(int fd, char* buff, int buff_size) {
 	
     printf("\nWaiting transmission...\n");
 	    
-	unsigned char tmp;
+	char tmp;
 	
 	/* Waiting for flag */
 	int i=0, res;
-    while (INIT==FALSE && i < buff_size) {       /* loop for input */
-      res = read(fd,&tmp,1);  
+    while (INIT==FALSE) {       /* loop for input */
+      res = read(fd,&tmp,1);
+      printf("%c\n", tmp);
       if (tmp== 0x7E) INIT=TRUE;
     }
 
@@ -115,8 +118,10 @@ int receive_frame(int fd, char* buff, int buff_size) {
 		res = read(fd, &tmp, 1);  
     	if (tmp == 0x7E) break;
     	buff[i++] = tmp;
+		printf("%c\n", buff[i-1]);
 	}
 	
+	printf("%s\n", buff);
 	return i;
 }
 
