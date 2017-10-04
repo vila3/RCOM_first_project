@@ -6,21 +6,56 @@
 #include <termios.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#define BAUDRATE B38400
-#define MODEMDEVICE "/dev/ttyS1"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
+#include "rs32.h"
 
 volatile int STOP=FALSE;
 
+
+int cria_trama(char *frame, char ctrl){
+	int n;
+	for(n=0;n<MAX_FRAME;n++){
+		frame[n]=0x7e;	
+	}
+
+	// Define endereço	
+	frame[1]=0x03;
+
+	// Define Campo Controlo
+	frame[2]=ctrl;
+	
+	/*for(n=0;data[n]!="\0";n++){
+		frame[4+n]=data[n];
+		if(n=MAX_FRAME-6){
+			frame[2]=frame[2]^0x40;
+			frame[2]=frame[2]+0x80;
+		}	
+	}*/
+
+	return n;
+}
+int envia_trama(char *frame, char *data, int data_size){
+	int n;
+	frame[3]=frame[1]^frame[2];
+	printf("Data: %s\n",data);
+	for(n=0;n<data_size;n++){
+		if(n==MAX_FRAME-6) break;
+		frame[4+n]=data[n];
+	}
+	return n;
+}
+
+
 int main(int argc, char** argv)
 {
-    int fd,c, res,n=0;
+    int fd,c, res,n=0,s=0;
     struct termios oldtio,newtio;
-    char buf[255];
+    char buf[PAYLOAD],data[PAYLOAD];
     int i, sum = 0, speed = 0;
+
+	char frame1[MAX_FRAME]={0x7e};
+
     
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
@@ -73,21 +108,36 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-	gets(buf);
-	printf("%s\n",buf);   
+	// Código aula 2
 
+	printf("Data to send: ");
+	//s=scanf("%s",data);
+	s=fgets(data,255,stdin);
+	puts(data);
+
+	if(cria_trama(frame1,0x03))
+	{
+		envia_trama(frame1,data,strlen(data));
+	}
+	//printf("Primeiro valor da trama: %x\n",frame1[0]);
+	res=write(fd,frame1,MAX_FRAME);
+
+
+	// - fim código aula 2
+
+	/*
+	gets(buf);
+	//printf("%s\n",buf);   
+	
     for (i = 0; i < 255; i++) {
 
       if(buf[i] == 0) break;
     }
     i++;
-    /*testing*/
-    //buf[254] = '\0';
     
-    res = write(fd,buf,i);
-	printf("%s\n",buf);   
-    printf("%d bytes written i=%d\n", res,i);
- 
+    res = write(fd,buf,i);  
+    printf("%d bytes written\n", res);
+ 	*/
 	sleep(1);
 
   /* 
