@@ -7,37 +7,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "rs32.h"
 
 volatile int STOP=FALSE;
+volatile int INIT=FALSE;
 
 
 int cria_trama(char *frame, char ctrl){
 	int n;
 	for(n=0;n<MAX_FRAME;n++){
-		frame[n]=0x7e;	
+		frame[n]=0x7e;
 	}
 
-	// Define endereço	
-	frame[1]=0x03;
+	// Define endereÃ§o
+	frame[1]=ADRESS_SEND;
 
 	// Define Campo Controlo
 	frame[2]=ctrl;
-	
-	/*for(n=0;data[n]!="\0";n++){
-		frame[4+n]=data[n];
-		if(n=MAX_FRAME-6){
-			frame[2]=frame[2]^0x40;
-			frame[2]=frame[2]+0x80;
-		}	
-	}*/
 
+	// BCC1 -  Block Check Character
+	frame[3]=frame[1]^frame[2];
 	return n;
 }
 int envia_trama(char *frame, char *data, int data_size){
 	int n;
-	frame[3]=frame[1]^frame[2];
 	printf("Data: %s\n",data);
 	for(n=0;n<data_size;n++){
 		if(n==MAX_FRAME-6) break;
@@ -45,20 +40,55 @@ int envia_trama(char *frame, char *data, int data_size){
 	}
 	return n;
 }
+int receive_frame(int fd, char* buff, int buff_size) {
 
+  printf("\nWaiting transmission...\n");
+
+	char tmp;
+
+	/* Waiting for flag */
+	int i=0, res;
+    while (INIT==FALSE) {       /* loop for input */
+      res = read(fd,&tmp,1);
+      //printf("%c\n", tmp);
+      if (tmp== 0x7E) INIT=TRUE;
+    }
+
+	/* verify repeated flag */
+	i += 1;
+	res = read(fd, &tmp, 1);
+    if (tmp != 0x7E) buff[i++] = tmp;
+
+	while (i < buff_size) {
+		res = read(fd, &tmp, 1);
+    	if (tmp == 0x7E) break;
+    	buff[i++] = tmp;
+		//printf("%c\n", buff[i-1]);
+	}
+
+	//printf("%s\n", buff);
+	return i;
+}
+int read_frame(char* frame, char* package, char* from_address) {
+	int i=0;
+
+	*from_address = frame[i];
+
+	return 0;
+}
 
 int main(int argc, char** argv)
 {
     int fd,c, res,n=0,s=0;
     struct termios oldtio,newtio;
-    char buf[PAYLOAD],data[PAYLOAD];
+    char buf[MAX_FRAME],data[PAYLOAD];
     int i, sum = 0, speed = 0;
 
 	char frame1[MAX_FRAME]={0x7e};
 
-    
-    if ( (argc < 2) || 
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
+
+    if ( (argc < 2) ||
+  	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
   	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
@@ -90,14 +120,10 @@ int main(int argc, char** argv)
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
 
-
-
-  /* 
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) próximo(s) caracter(es)
+  /*
+    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
+    leitura do(s) prï¿½ximo(s) caracter(es)
   */
-
-
 
     tcflush(fd, TCIOFLUSH);
 
@@ -108,53 +134,46 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-	// Código aula 2
+	// Code for lab1
 
+	// Connect
+	cria_trama(frame1,CTRL_SET);
+	res=write(fd,frame1,MAX_FRAME);
+
+	// Waits response from receiver
+	char *package, from_address;
+	n =	receive_frame(fd, frame1, MAX_FRAME);
+	if(frame1[2]==CTRL_UA)
+		printf("-- Connection accepted --\n");
+
+
+
+	// Include a string in a frame and send it
 	printf("Data to send: ");
-	//s=scanf("%s",data);
-	s=fgets(data,255,stdin);
-	puts(data);
-
-	if(cria_trama(frame1,0x03))
+	s=fgets(data,PAYLOAD,stdin);
+	if(cria_trama(frame1,0x00))
 	{
 		envia_trama(frame1,data,strlen(data));
 	}
-	//printf("Primeiro valor da trama: %x\n",frame1[0]);
 	res=write(fd,frame1,MAX_FRAME);
 
+	//Disconnect
+	cria_trama(frame1,CTRL_DISC);
+	res=write(fd,frame1,MAX_FRAME);
 
-	// - fim código aula 2
+	// - end code from lab1
 
-	/*
-	gets(buf);
-	//printf("%s\n",buf);   
-	
-    for (i = 0; i < 255; i++) {
-
-      if(buf[i] == 0) break;
-    }
-    i++;
-    
-    res = write(fd,buf,i);  
-    printf("%d bytes written\n", res);
- 	*/
 	sleep(1);
 
-  /* 
-    O ciclo FOR e as instruções seguintes devem ser alterados de modo a respeitar 
-    o indicado no guião 
+  /*
+    O ciclo FOR e as instruï¿½ï¿½es seguintes devem ser alterados de modo a respeitar
+    o indicado no guiï¿½o
   */
 
-
-
-   
     if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
-
-
-
 
     close(fd);
     return 0;

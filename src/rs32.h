@@ -10,5 +10,7 @@
 #define CTRL_UA 0x07
 #define CTRL_RR 0x05
 #define CTRL_REJ 0x01
+#define ADRESS_SEND 0x03
+#define ADRESS_RECEIVE 0x01
 #define MAX_FLAGS 6
 #define PAYLOAD MAX_FRAME-MAX_FLAGS
