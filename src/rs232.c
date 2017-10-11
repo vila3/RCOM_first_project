@@ -11,10 +11,12 @@
 
 
 int create_frame(char *frame, char ctrl){
-	int n;
-	for(n=0;n<MAX_FRAME;n++){
+	//int n;
+	/*for(n=0;n<MAX_FRAME;n++){
 		frame[n]=0x7e;
-	}
+	}*/
+	frame[0]=0x7e;
+	frame[4]=0x7e;
 
 	// Define endere�o
 	frame[1]=0x03;
@@ -25,21 +27,31 @@ int create_frame(char *frame, char ctrl){
 	// BCC1 -  Block Check Character
 	frame[3]=frame[1]^frame[2];
 
-	return n;
+
+	return 1;
 }
 
 int send_frame(char *frame, char *data, int data_size){
-	int n;
-	frame[3]=frame[1]^frame[2];
+	int n,i;
+	//frame[3]=frame[1]^frame[2];
 
-	// printf("Data: %s\n",data);
 	for(n=0;n<data_size;n++){
-		if(n==MAX_FRAME-6) break;
+		if(n==PAYLOAD) break;
 		frame[4+n]=data[n];
 	}
+	if(data_size){
+		frame[6+n]=0x7e; // end flag (with data)
 
-	n = write(fd,frame,n+6);
-
+		frame[6+n]=0; // BCC2 with XOR across data
+		for(i=0;i<data_size;i++){
+			frame[6+n]^=frame[4+i];
+		}
+		n = write(fd,frame,n+7);//era 7
+	}
+	else{
+		frame[4]=0x7e; // end flag without data
+		n = write(fd,frame,5);
+	}
 	return n;
 }
 
@@ -51,21 +63,23 @@ int receive_frame(int fd, char* buff, int buff_size) {
 
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
+	
     while (init_frame==FALSE) {       /* loop for input */
       read(fd,&tmp,1);
       if (tmp== 0x7E) init_frame=TRUE;
     }
-
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
     if (tmp != 0x7E) buff[i++] = tmp;
-
+	printf("Char em tmp: %c\n",tmp);
 	while (i < buff_size) {
 		read(fd, &tmp, 1);
     	if (tmp == 0x7E) break;
+		printf("%d %d\n", i , buff_size);
     	buff[i++] = tmp;
+		printf("Char em tmp: %c\n",tmp);
 	}
-
+	printf("saiu da merda\n");
 	return i;
 }
 
@@ -78,6 +92,24 @@ int read_frame(char* frame, char* data, char* from_address, char *ctrl) {
 
 	if ((*from_address ^ *ctrl) != frame[i++]) {
 		return -1;
+	}
+
+	// The code bellow is to check BCC2,
+	// but with the current implementation (without flags after receive_frame)
+	// we don't have a way to check it
+
+	/*if(frame[i]!=0x7e){ // Check BCC2
+	
+		for(i=0;i<data_size-1;i++){
+			frame[6+n]^=frame[4+i];
+		}
+		n = write(fd,frame,n+7);
+	}*/
+	if(data!=NULL){
+		for(i=0;;i++){
+			data[i]=frame[i+3];
+			if(data[i]=='\0') break;
+		}
 	}
 
 	return 0;
@@ -132,25 +164,25 @@ int llopen(char* serial_port, int mode) {
 		}
 
 		int n;
-		n =	receive_frame(fd, buf, MAX_FRAME);
+		while(n==0){
+			n =	receive_frame(fd, buf, MAX_FRAME);
+		}
 
 		char from_address, ctrl;
 		n = read_frame(buf, NULL, &from_address, &ctrl);
 
 		if (n == 0 && ctrl == CTRL_UA) {
 			printf("Connection open, ready to write!\n");
-		} else {
+		} 
+		else {
 			printf("An error occur opening the connection!\n");
 			return -1;
 		}
-	} else {
-		if(create_frame(frame1,CTRL_UA))
-		{
-			send_frame(frame1, NULL, 0);
-		}
+	} 
+	else {
+		while(llread()==0);
 		printf("Connection open, ready to read!\n");
 	}
-
 	return 1;
 }
 
@@ -168,7 +200,8 @@ int llread() {
 		{
 			send_frame(frame1, NULL, 0);
 		}
-	} else {
+	} 
+	else {
 		printf("%s\n", data);
 	}
 
@@ -193,7 +226,7 @@ int llwrite(char *data){
 	char frame1[MAX_FRAME]={0x7e};
 	if(create_frame(frame1,0x00))
 	{
-		send_frame(frame1,data,strlen(data));
+		send_frame(frame1,data,strlen(data)+1);
 	}
 	return 1;
 }

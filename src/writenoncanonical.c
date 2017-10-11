@@ -20,8 +20,10 @@ int main(int argc, char** argv)
     }
 
     llopen(argv[1], MODE_WRITE);
-		llwrite("String to send!");
-		llclose();
+
+	llwrite("String to send!");
+
+	llclose();
 
 	return 0;
 }
