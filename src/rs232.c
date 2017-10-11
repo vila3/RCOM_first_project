@@ -85,10 +85,7 @@ int read_frame(char* frame, char* data, char* from_address, char *ctrl) {
 
 int llopen(char* serial_port, int mode) {
 
-    int c, res,n=0,s=0;
-    char buf[PAYLOAD],data[PAYLOAD];
-    int sum = 0, speed = 0;
-
+    char buf[PAYLOAD];
     char frame1[MAX_FRAME]={0x7e};
 
 
@@ -129,7 +126,7 @@ int llopen(char* serial_port, int mode) {
     }
 
 	if (mode == MODE_WRITE) {
-		if(create_frame(frame1,0x03))
+		if(create_frame(frame1,CTRL_SET))
 		{
 			send_frame(frame1, NULL, 0);
 		}
@@ -147,6 +144,10 @@ int llopen(char* serial_port, int mode) {
 			return -1;
 		}
 	} else {
+		if(create_frame(frame1,CTRL_UA))
+		{
+			send_frame(frame1, NULL, 0);
+		}
 		printf("Connection open, ready to read!\n");
 	}
 
@@ -184,5 +185,15 @@ int llclose() {
 
 	printf("Connection closed!\n");
 
+	return 1;
+}
+
+int llwrite(char *data){
+	// Include a string in a frame and send it
+	char frame1[MAX_FRAME]={0x7e};
+	if(create_frame(frame1,0x00))
+	{
+		send_frame(frame1,data,strlen(data));
+	}
 	return 1;
 }

@@ -32,3 +32,5 @@ int llopen(char* serial_port, int mode);
 int llread();
 
 int llclose();
+
+int llwrite(char *data);
