@@ -9,6 +9,19 @@
 
 #include "rs232.h"
 
+void print_frame(char *frame, int len) {
+	printf("Frame: ");
+	for (size_t i = 0; i < len; i++) {
+		printf("%x", frame[i]);
+	}
+	printf("\n");
+	printf("Frame: ");
+	for (size_t i = 0; i < len; i++) {
+		printf("%c", frame[i]);
+	}
+	printf("\n");
+}
+
 int destuffing(char *frame, int frame_len) {
 	int i, n_escape=0, n=0;
 	char c;
@@ -30,17 +43,16 @@ int destuffing(char *frame, int frame_len) {
 
 int stuffing(char *frame, int frame_len){
 	int i,n_escape=0,stuffed_frame_len=0,n=0;
-	char* stuffed_frame;
 	for(i=0;i<frame_len;i++){
 		if(frame[i]==0x7e)
 			n_escape++;
 	}
 	stuffed_frame_len=frame_len+n_escape;
-	stuffed_frame = (char*) malloc(sizeof(char)*stuffed_frame_len);
+	char *stuffed_frame = (char*) malloc(sizeof(char)*stuffed_frame_len);
 
-	for(i=0;i<stuffed_frame_len;i++){
+	for(i=0;i<frame_len;i++){
 		if(frame[i]==0x7e){
-			stuffed_frame[n+1]=0x20^stuffed_frame[n];
+			stuffed_frame[n+1]=0x20^frame[i];
 			stuffed_frame[n]=0x7d;
 			n+=2;
 		}
@@ -95,6 +107,7 @@ int send_frame(char *frame, char *data, int data_size){
 		frame_size=5;
 	}
 	frame_size=stuffing(frame,frame_size);
+	print_frame(frame, frame_size);
 	n = write(fd,frame,frame_size);
 	return n;
 }
@@ -250,6 +263,7 @@ int llread(char** buff) {
 	int n;
 	// printf("Receiving frame...\n");
 	n =	receive_frame(fd, buf, MAX_FRAME);
+	print_frame(buf, n);
 
 	n = destuffing(buf, n);
 	// printf("Frame received!\n");
