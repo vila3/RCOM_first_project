@@ -9,6 +9,24 @@
 
 #include "rs232.h"
 
+int destuffing(char *frame, int frame_len) {
+	int i, n_escape=0, n=0;
+	char c;
+	for (i = 0; i < frame_len; i++) {
+		if (frame[i] == 0x7d) n_escape++;
+	}
+	char *new_frame = malloc( sizeof(char) * frame_len - n_escape);
+
+	for (i = 0; i < frame_len; i++) {
+		c = frame[i];
+		if (c == 0x7d) c = frame[++i]^0x20;
+
+		new_frame[n++] = c;
+	}
+
+	frame = new_frame;
+	return n;
+}
 
 int create_frame(char *frame, char ctrl){
 	//int n;
@@ -102,7 +120,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	}
 
 	if (data == NULL) return 0;
-	
+
 	if (bcc2 == bcc_check) {
 		for(i=0; i<frame_len-4;i++){
 			data[i]=frame[i+3];
@@ -209,6 +227,7 @@ int llread(char** buff) {
 	// printf("Receiving frame...\n");
 	n =	receive_frame(fd, buf, MAX_FRAME);
 
+	n = destuffing(buf, n);
 	// printf("Frame received!\n");
 	// printf("Reading frame...\n");
 	char *data = (char *) malloc( sizeof(char) * ( n - 3 ) );
