@@ -43,24 +43,32 @@ int destuffing(char *frame, int frame_len) {
 
 int stuffing(char *frame, int frame_len){
 	int i,n_escape=0,stuffed_frame_len=0,n=0;
-	for(i=0;i<frame_len;i++){
-		if(frame[i]==0x7e)
+	printf("Observar aqui antes de stuffing:\n");
+	print_frame(frame, frame_len);
+	for(i = 1; i < frame_len-1; i++){
+		if(frame[i] == 0x7e)
 			n_escape++;
+			//printf("\nNumero de escapes:%d\n",n_escape);
+			//printf("%x\n",frame[i]);
 	}
 	stuffed_frame_len=frame_len+n_escape;
 	char *stuffed_frame = (char*) malloc(sizeof(char)*stuffed_frame_len);
 
-	for(i=0;i<frame_len;i++){
-		if(frame[i]==0x7e){
-			stuffed_frame[n+1]=0x20^frame[i];
-			stuffed_frame[n]=0x7d;
-			n+=2;
+	for(i = 1; i < frame_len-1; i++){
+		if(frame[i] == 0x7e){
+			stuffed_frame[n+1] = 0x20^frame[i];
+			stuffed_frame[n] = 0x7d;
+			n += 2;
 		}
 		else{
 			stuffed_frame[n++]=frame[i];
 		}
 	}
 	frame=stuffed_frame;
+	printf("Observar aqui nova:\n");
+	print_frame(stuffed_frame, stuffed_frame_len);
+	printf("Observar aqui igualada:\n");
+	print_frame(frame,stuffed_frame_len);
 
 	return stuffed_frame_len;
 }
@@ -94,20 +102,26 @@ int send_frame(char *frame, char *data, int data_size){
 		frame[4+n]=data[n];
 	}
 	if(data_size){
-		frame[5+n]=0x7e; // end flag (with data)
 
 		frame[4+n]=frame[4]; // BCC2 with XOR across data
 		for(i=1;i<data_size;i++){
 			frame[4+n]^=frame[4+i];
 		}
+
+		frame[5+n]=0x7e; // end flag (with data)
+
 		frame_size=n+6;
 	}
 	else{
 		frame[4]=0x7e; // end flag without data
 		frame_size=5;
 	}
+
 	frame_size=stuffing(frame,frame_size);
+
+	printf("Aqui falha:\n");
 	print_frame(frame, frame_size);
+
 	n = write(fd,frame,frame_size);
 	return n;
 }
