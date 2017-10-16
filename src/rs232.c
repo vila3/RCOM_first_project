@@ -40,13 +40,13 @@ int send_frame(char *frame, char *data, int data_size){
 		frame[4+n]=data[n];
 	}
 	if(data_size){
-		frame[6+n]=0x7e; // end flag (with data)
+		frame[5+n]=0x7e; // end flag (with data)
 
-		frame[6+n]=0; // BCC2 with XOR across data
-		for(i=0;i<data_size;i++){
-			frame[6+n]^=frame[4+i];
+		frame[4+n]=frame[4]; // BCC2 with XOR across data
+		for(i=1;i<data_size;i++){
+			frame[4+n]^=frame[4+i];
 		}
-		n = write(fd,frame,n+7);//era 7
+		n = write(fd,frame,n+6);
 	}
 	else{
 		frame[4]=0x7e; // end flag without data
@@ -63,7 +63,7 @@ int receive_frame(int fd, char* buff, int buff_size) {
 
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
-	
+
     while (init_frame==FALSE) {       /* loop for input */
       read(fd,&tmp,1);
       if (tmp== 0x7E) init_frame=TRUE;
@@ -71,24 +71,21 @@ int receive_frame(int fd, char* buff, int buff_size) {
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
     if (tmp != 0x7E) buff[i++] = tmp;
-	printf("Char em tmp: %c\n",tmp);
 	while (i < buff_size) {
 		read(fd, &tmp, 1);
     	if (tmp == 0x7E) break;
-		printf("%d %d\n", i , buff_size);
+		// printf("%d - %x\n", i, tmp);
     	buff[i++] = tmp;
-		printf("Char em tmp: %c\n",tmp);
 	}
-	printf("saiu da merda\n");
+
 	return i;
 }
 
-int read_frame(char* frame, char* data, char* from_address, char *ctrl) {
+int read_frame(char* frame, int frame_len, char* data, char* from_address, char *ctrl) {
 	int i=0;
 
 	*from_address = frame[i++];
 	*ctrl = frame[i++];
-
 
 	if ((*from_address ^ *ctrl) != frame[i++]) {
 		return -1;
@@ -98,20 +95,28 @@ int read_frame(char* frame, char* data, char* from_address, char *ctrl) {
 	// but with the current implementation (without flags after receive_frame)
 	// we don't have a way to check it
 
-	/*if(frame[i]!=0x7e){ // Check BCC2
-	
-		for(i=0;i<data_size-1;i++){
-			frame[6+n]^=frame[4+i];
-		}
-		n = write(fd,frame,n+7);
-	}*/
-	if(data!=NULL){
-		for(i=0;;i++){
-			data[i]=frame[i+3];
-			if(data[i]=='\0') break;
-		}
+	char bcc2 = frame[frame_len-1], bcc_check = frame[3];
+
+	for(i=1;i<frame_len-4;i++){
+		bcc_check^=frame[3+i];
 	}
 
+	if (data == NULL) return 0;
+	
+	if (bcc2 == bcc_check) {
+		for(i=0; i<frame_len-4;i++){
+			data[i]=frame[i+3];
+		}
+
+		data[i] = 0;
+
+
+		return i;
+	} else {
+		printf("Bcc2 fail\n");
+	}
+
+	// TODO pedir trama novamente
 	return 0;
 }
 
@@ -157,53 +162,61 @@ int llopen(char* serial_port, int mode) {
         exit(-1);
     }
 
+	int n;
+	char from_address, ctrl;
 	if (mode == MODE_WRITE) {
 		if(create_frame(frame1,CTRL_SET))
 		{
 			send_frame(frame1, NULL, 0);
 		}
 
-		int n;
-		while(n==0){
-			n =	receive_frame(fd, buf, MAX_FRAME);
-		}
-
-		char from_address, ctrl;
-		n = read_frame(buf, NULL, &from_address, &ctrl);
+		n =	receive_frame(fd, buf, MAX_FRAME);
+		n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 		if (n == 0 && ctrl == CTRL_UA) {
 			printf("Connection open, ready to write!\n");
-		} 
+		}
 		else {
 			printf("An error occur opening the connection!\n");
 			return -1;
 		}
-	} 
+	}
 	else {
-		while(llread()==0);
+		while(1) {
+			n = receive_frame(fd, buf, MAX_FRAME);
+
+			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+
+			if (ctrl == CTRL_SET) {
+				char frame1[MAX_FRAME];
+				if(create_frame(frame1, CTRL_UA))
+				{
+					send_frame(frame1, NULL, 0);
+				}
+
+				break;
+			}
+		}
 		printf("Connection open, ready to read!\n");
 	}
 	return 1;
 }
 
-int llread() {
-	char buf[MAX_FRAME], data[PAYLOAD], from_address, ctrl;
+int llread(char** buff) {
+	char buf[MAX_FRAME], from_address, ctrl;
 
 	int n;
+	// printf("Receiving frame...\n");
 	n =	receive_frame(fd, buf, MAX_FRAME);
 
-	n = read_frame(buf, data, &from_address, &ctrl);
+	// printf("Frame received!\n");
+	// printf("Reading frame...\n");
+	char *data = (char *) malloc( sizeof(char) * ( n - 3 ) );
+	n = read_frame(buf, n, data, &from_address, &ctrl);
+	// printf("Frame read!\n");
 
-	if (ctrl == CTRL_SET) {
-		char frame1[MAX_FRAME];
-		if(create_frame(frame1, CTRL_UA))
-		{
-			send_frame(frame1, NULL, 0);
-		}
-	} 
-	else {
-		printf("%s\n", data);
-	}
+	// printf("%s\n", data);
+	*buff = data;
 
 	return n;
 }

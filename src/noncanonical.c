@@ -12,7 +12,12 @@ int main(int argc, char** argv)
 {
     llopen(argv[1], MODE_READ);
 
-    llread();
+    printf("Start reading...\n");
+    char *data = NULL;
+    llread(&data);
+    printf("End read!\n");
+
+    printf("%s\n", data);
 
     llclose();
 

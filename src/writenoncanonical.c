@@ -1,5 +1,5 @@
-/*Non-Canonical Input Processing*/
 
+/*Non-Canonical Input Processing*/
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -14,7 +14,7 @@
 int main(int argc, char** argv)
 {
 	if ( (argc < 2) ||
-  	     (strstr(argv[1], "/dev/t") == NULL)) {
+  	     (strstr(argv[1], "/dev/") == NULL)) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
     }
