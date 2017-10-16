@@ -21,8 +21,8 @@
 #define MAX_FLAGS 6
 #define PAYLOAD MAX_FRAME-MAX_FLAGS
 
-#define MODE_WRITE 1
-#define MODE_READ 0
+#define TRANSMITTER 1
+#define RECEIVER 0
 
 int fd;
 struct termios oldtio,newtio;

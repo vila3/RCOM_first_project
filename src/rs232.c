@@ -9,6 +9,8 @@
 
 #include "rs232.h"
 
+int debugging = 0;
+
 void print_frame(char *frame, int len) {
 	printf("Frame: ");
 	for (size_t i = 0; i < len; i++) {
@@ -22,53 +24,52 @@ void print_frame(char *frame, int len) {
 	printf("\n");
 }
 
-int destuffing(char *frame, int frame_len) {
+int destuffing(char **frame, int frame_len) {
 	int i, n_escape=0, n=0;
 	char c;
 	for (i = 0; i < frame_len; i++) {
-		if (frame[i] == 0x7d) n_escape++;
+		if ((*frame)[i] == 0x7d) n_escape++;
 	}
 	char *new_frame = malloc( sizeof(char) * frame_len - n_escape);
 
 	for (i = 0; i < frame_len; i++) {
-		c = frame[i];
-		if (c == 0x7d) c = frame[++i]^0x20;
+		c = (*frame)[i];
+		if (c == 0x7d) c = (*frame)[++i]^0x20;
 
 		new_frame[n++] = c;
 	}
 
-	frame = new_frame;
+	*frame = new_frame;
 	return n;
 }
 
-int stuffing(char *frame, int frame_len){
+int stuffing(char **frame, int frame_len){
 	int i,n_escape=0,stuffed_frame_len=0,n=0;
-	printf("Observar aqui antes de stuffing:\n");
-	print_frame(frame, frame_len);
+
 	for(i = 1; i < frame_len-1; i++){
-		if(frame[i] == 0x7e)
+		if((*frame)[i] == 0x7e)
 			n_escape++;
 			//printf("\nNumero de escapes:%d\n",n_escape);
-			//printf("%x\n",frame[i]);
 	}
+
+	if (n_escape == 0) {
+		return frame_len;
+	}
+
 	stuffed_frame_len=frame_len+n_escape;
 	char *stuffed_frame = (char*) malloc(sizeof(char)*stuffed_frame_len);
 
-	for(i = 1; i < frame_len-1; i++){
-		if(frame[i] == 0x7e){
-			stuffed_frame[n+1] = 0x20^frame[i];
+	for(i = 0; i < frame_len; i++){
+		if((*frame)[i] == 0x7e && i>0 && i<frame_len-1){
+			stuffed_frame[n+1] = 0x20^(*frame)[i];
 			stuffed_frame[n] = 0x7d;
 			n += 2;
 		}
 		else{
-			stuffed_frame[n++]=frame[i];
+			stuffed_frame[n++]=(*frame)[i];
 		}
 	}
-	frame=stuffed_frame;
-	printf("Observar aqui nova:\n");
-	print_frame(stuffed_frame, stuffed_frame_len);
-	printf("Observar aqui igualada:\n");
-	print_frame(frame,stuffed_frame_len);
+	*frame=stuffed_frame;
 
 	return stuffed_frame_len;
 }
@@ -117,18 +118,17 @@ int send_frame(char *frame, char *data, int data_size){
 		frame_size=5;
 	}
 
-	frame_size=stuffing(frame,frame_size);
-
-	printf("Aqui falha:\n");
-	print_frame(frame, frame_size);
+	frame_size=stuffing(&frame,frame_size);
 
 	n = write(fd,frame,frame_size);
 	return n;
 }
 
-int receive_frame(int fd, char* buff, int buff_size) {
+int receive_frame(int fd, char** buff, int buff_size) {
 
-    printf("\nWaiting transmission...\n");
+	*buff = malloc(sizeof(char) * MAX_FRAME);
+	if (debugging)
+    	printf("\nWaiting transmission...\n");
 
 	char tmp;
 
@@ -141,13 +141,14 @@ int receive_frame(int fd, char* buff, int buff_size) {
     }
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
-    if (tmp != 0x7E) buff[i++] = tmp;
+    if (tmp != 0x7E) (*buff)[i++] = tmp;
 	while (i < buff_size) {
 		read(fd, &tmp, 1);
     	if (tmp == 0x7E) break;
-		// printf("%d - %x\n", i, tmp);
-    	buff[i++] = tmp;
+    	(*buff)[i++] = tmp;
 	}
+
+	i = destuffing(buff, i);
 
 	return i;
 }
@@ -182,7 +183,8 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 
 		return i;
 	} else {
-		printf("Bcc2 fail\n");
+		if (debugging)
+			printf("Bcc2 fail\n");
 	}
 
 	// TODO pedir trama novamente
@@ -191,7 +193,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 
 int llopen(char* serial_port, int mode) {
 
-    char buf[PAYLOAD];
+    char *buf;
     char frame1[MAX_FRAME]={0x7e};
 
 
@@ -233,26 +235,28 @@ int llopen(char* serial_port, int mode) {
 
 	int n;
 	char from_address, ctrl;
-	if (mode == MODE_WRITE) {
+	if (mode == TRANSMITTER) {
 		if(create_frame(frame1,CTRL_SET))
 		{
 			send_frame(frame1, NULL, 0);
 		}
 
-		n =	receive_frame(fd, buf, MAX_FRAME);
+		n =	receive_frame(fd, &buf, MAX_FRAME);
 		n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 		if (n == 0 && ctrl == CTRL_UA) {
-			printf("Connection open, ready to write!\n");
+			if (debugging)
+				printf("Connection open, ready to write!\n");
 		}
 		else {
-			printf("An error occur opening the connection!\n");
+			if (debugging)
+				printf("An error occur opening the connection!\n");
 			return -1;
 		}
 	}
 	else {
 		while(1) {
-			n = receive_frame(fd, buf, MAX_FRAME);
+			n = receive_frame(fd, &buf, MAX_FRAME);
 
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
@@ -266,27 +270,21 @@ int llopen(char* serial_port, int mode) {
 				break;
 			}
 		}
-		printf("Connection open, ready to read!\n");
+		if (debugging)
+			printf("Connection open, ready to read!\n");
 	}
 	return 1;
 }
 
 int llread(char** buff) {
-	char buf[MAX_FRAME], from_address, ctrl;
-
+	char *buf, from_address, ctrl;
 	int n;
-	// printf("Receiving frame...\n");
-	n =	receive_frame(fd, buf, MAX_FRAME);
-	print_frame(buf, n);
 
-	n = destuffing(buf, n);
-	// printf("Frame received!\n");
-	// printf("Reading frame...\n");
+	n =	receive_frame(fd, &buf, MAX_FRAME);
+
 	char *data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 	n = read_frame(buf, n, data, &from_address, &ctrl);
-	// printf("Frame read!\n");
 
-	// printf("%s\n", data);
 	*buff = data;
 
 	return n;
@@ -300,7 +298,8 @@ int llclose() {
 
     close(fd);
 
-	printf("Connection closed!\n");
+	if (debugging)
+		printf("Connection closed!\n");
 
 	return 1;
 }
