@@ -28,6 +28,31 @@ int destuffing(char *frame, int frame_len) {
 	return n;
 }
 
+int stuffing(char *frame, int frame_len){
+	int i,n_escape=0,stuffed_frame_len=0,n=0;
+	char* stuffed_frame;
+	for(i=0;i<frame_len;i++){
+		if(frame[i]==0x7e)
+			n_escape++;
+	}
+	stuffed_frame_len=frame_len+n_escape;
+	stuffed_frame = (char*) malloc(sizeof(char)*stuffed_frame_len);
+
+	for(i=0;i<stuffed_frame_len;i++){
+		if(frame[i]==0x7e){
+			stuffed_frame[n+1]=0x20^stuffed_frame[n];
+			stuffed_frame[n]=0x7d;
+			n+=2;
+		}
+		else{
+			stuffed_frame[n++]=frame[i];
+		}
+	}
+	frame=stuffed_frame;
+
+	return stuffed_frame_len;
+}
+
 int create_frame(char *frame, char ctrl){
 	//int n;
 	/*for(n=0;n<MAX_FRAME;n++){
@@ -50,8 +75,7 @@ int create_frame(char *frame, char ctrl){
 }
 
 int send_frame(char *frame, char *data, int data_size){
-	int n,i;
-	//frame[3]=frame[1]^frame[2];
+	int n,i,frame_size;
 
 	for(n=0;n<data_size;n++){
 		if(n==PAYLOAD) break;
@@ -64,12 +88,14 @@ int send_frame(char *frame, char *data, int data_size){
 		for(i=1;i<data_size;i++){
 			frame[4+n]^=frame[4+i];
 		}
-		n = write(fd,frame,n+6);
+		frame_size=n+6;
 	}
 	else{
 		frame[4]=0x7e; // end flag without data
-		n = write(fd,frame,5);
+		frame_size=5;
 	}
+	frame_size=stuffing(frame,frame_size);
+	n = write(fd,frame,frame_size);
 	return n;
 }
 
@@ -110,8 +136,6 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	}
 
 	// The code bellow is to check BCC2,
-	// but with the current implementation (without flags after receive_frame)
-	// we don't have a way to check it
 
 	char bcc2 = frame[frame_len-1], bcc_check = frame[3];
 
