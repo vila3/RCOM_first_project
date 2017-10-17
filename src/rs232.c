@@ -6,10 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> // for close
+#include <signal.h> // for timeout
 
 #include "rs232.h"
 
 int debugging = 0;
+int flag=1, attempts=1;
+
+void timeout_handler()                   // answer alarm
+{
+	printf("Passaram 3 segundos: # %d, vamos tentar novamente\n", attempts);
+	flag=1;
+	attempts++;
+}
 
 void print_frame(char *frame, int len) {
 	printf("Frame: ");
@@ -238,7 +247,15 @@ int llopen(char* serial_port, int mode) {
 	if (mode == TRANSMITTER) {
 		if(create_frame(frame1,CTRL_SET))
 		{
+			// Timeout implementation
+			//(void) signal(SIGALRM, timeout_handler);  // instala  rotina que atende interrupcao
+
 			send_frame(frame1, NULL, 0);
+			// Start timer
+			//if(flag){
+			//	alarm(3);	// activate timer of 3s
+			//	flag=0;
+			//}
 		}
 
 		n =	receive_frame(fd, &buf, MAX_FRAME);
@@ -249,6 +266,24 @@ int llopen(char* serial_port, int mode) {
 				printf("Connection open, ready to write!\n");
 		}
 		else {
+			/*while( attempts < 4){
+				if(create_frame(frame1,CTRL_SET))
+				{
+					if(flag){
+						send_frame(frame1, NULL, 0);
+						alarm(3);	// activate timer of 3s
+						flag=0;
+						n =	receive_frame(fd, &buf, MAX_FRAME);
+						n = read_frame(buf, n, NULL, &from_address, &ctrl);
+					}
+				}
+				if (n == 0 && ctrl == CTRL_UA) {
+					if (debugging)
+						printf("Connection open, ready to write!\n");
+				}
+				
+			}
+			*/
 			if (debugging)
 				printf("An error occur opening the connection!\n");
 			return -1;

@@ -19,7 +19,7 @@ int main(int argc, char** argv)
       exit(1);
     }
 
-    llopen(argv[1], MODE_WRITE);
+    llopen(argv[1], TRANSMITTER);
 
 	printf("Send string: \"String to ~ send!\"\n");
 	llwrite("String to ~ send!");
