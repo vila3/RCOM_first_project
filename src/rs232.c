@@ -288,7 +288,6 @@ int llopen(char* serial_port, int mode) {
 	else {
 		while(1) {
 			n = receive_frame(fd, &buf, MAX_FRAME);
-
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 			if (ctrl == CTRL_SET) {
@@ -309,9 +308,11 @@ int llopen(char* serial_port, int mode) {
 
 int llread(char** buff) {
 	char *buf, from_address, ctrl;
-	int n;
+	int n=-1;
 
-	n =	receive_frame(fd, &buf, MAX_FRAME);
+	while (n<0) {
+		n =	receive_frame(fd, &buf, MAX_FRAME);
+	}
 
 	char *data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 	n = read_frame(buf, n, data, &from_address, &ctrl);
@@ -354,7 +355,6 @@ int llwrite(char *data){
 			{
 				n =	receive_frame(fd, &buf, MAX_FRAME);
 			}
-
 			if(flag)	continue;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 			ctrl = ctrl >> 6;
