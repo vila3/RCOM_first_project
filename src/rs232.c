@@ -22,12 +22,13 @@ void timeout_handler()                   // answer alarm
 
 void print_frame(char *frame, int len) {
 	printf("Frame: ");
-	for (size_t i = 0; i < len; i++) {
+	int i;
+	for (i = 0; i < len; i++) {
 		printf("%x", frame[i]);
 	}
 	printf("\n");
 	printf("Frame: ");
-	for (size_t i = 0; i < len; i++) {
+	for (i = 0; i < len; i++) {
 		printf("%c", frame[i]);
 	}
 	printf("\n");
@@ -147,6 +148,7 @@ int receive_frame(int fd, char** buff, int buff_size) {
     while (init_frame==FALSE) {       /* loop for input */
       read(fd,&tmp,1);
       if (tmp== 0x7E) init_frame=TRUE;
+      return -1;
     }
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
@@ -229,7 +231,7 @@ int llopen(char* serial_port, int mode) {
     newtio.c_lflag = 0;
 
     newtio.c_cc[VTIME]    = 5;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
+    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
 
     /*
       VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
@@ -245,45 +247,32 @@ int llopen(char* serial_port, int mode) {
 	int n;
 	char from_address, ctrl;
 	if (mode == TRANSMITTER) {
-		if(create_frame(frame1,CTRL_SET))
-		{
-			// Timeout implementation
-			//(void) signal(SIGALRM, timeout_handler);  // instala  rotina que atende interrupcao
+		do {
+			if(create_frame(frame1,CTRL_SET))
+			{
+				// Timeout implementation
+				(void) signal(SIGALRM, timeout_handler);  // instala  rotina que atende interrupcao
 
-			send_frame(frame1, NULL, 0);
-			// Start timer
-			//if(flag){
-			//	alarm(3);	// activate timer of 3s
-			//	flag=0;
-			//}
+				send_frame(frame1, NULL, 0);
+				// Start timer
+				if(flag){
+					alarm(3);	// activate timer of 3s
+					flag=0;
+				}
+			}
+
+			n =	receive_frame(fd, &buf, MAX_FRAME);
+			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+			
 		}
-
-		n =	receive_frame(fd, &buf, MAX_FRAME);
-		n = read_frame(buf, n, NULL, &from_address, &ctrl);
-
-		if (n == 0 && ctrl == CTRL_UA) {
+		while (n != 0 && ctrl != CTRL_UA && attempts < 4);
+	
+		if(n == 0 && ctrl == CTRL_UA) {
+			attempts = 0;
 			if (debugging)
 				printf("Connection open, ready to write!\n");
 		}
 		else {
-			/*while( attempts < 4){
-				if(create_frame(frame1,CTRL_SET))
-				{
-					if(flag){
-						send_frame(frame1, NULL, 0);
-						alarm(3);	// activate timer of 3s
-						flag=0;
-						n =	receive_frame(fd, &buf, MAX_FRAME);
-						n = read_frame(buf, n, NULL, &from_address, &ctrl);
-					}
-				}
-				if (n == 0 && ctrl == CTRL_UA) {
-					if (debugging)
-						printf("Connection open, ready to write!\n");
-				}
-				
-			}
-			*/
 			if (debugging)
 				printf("An error occur opening the connection!\n");
 			return -1;
