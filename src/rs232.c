@@ -10,8 +10,9 @@
 
 #include "rs232.h"
 
-int debugging = 1;
+int debugging = 0;
 int flag=1, attempts=1;
+static unsigned char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
@@ -207,7 +208,6 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 }
 
 int llopen(char* serial_port, int mode) {
-
     char *buf;
     char frame1[MAX_FRAME]={0x7e};
 
@@ -263,19 +263,16 @@ int llopen(char* serial_port, int mode) {
 					flag=0;
 				}
 			}
-			printf("Next: receive_frame\n");
+
 			while(n<0 && !flag)
 			{
 				n =	receive_frame(fd, &buf, MAX_FRAME);
 			}
-			printf("Before continue ctrl=%c attempts=%d flag=%d\n",ctrl,attempts,flag);
+
 			if(flag)	continue;
-			printf("Next: read_frame (n=%d) \n",n);
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
-			//printf("n=\n");
-			printf("ctrl=%c attempts=%d flag=%d\n",ctrl,attempts,flag);
 		}
-		while (n != 0 && ctrl != CTRL_UA && attempts < 4);
+		while (n != 0 && ctrl != CTRL_UA && attempts < MAX_ATTEMPTS);
 
 		if(n == 0 && ctrl == CTRL_UA) {
 			attempts = 0;
@@ -339,11 +336,32 @@ int llclose() {
 }
 
 int llwrite(char *data){
+	int n=-1;
+	char *buf;
+	char from_address, ctrl;
 	// Include a string in a frame and send it
 	char frame1[MAX_FRAME]={0x7e};
-	if(create_frame(frame1,0x00))
-	{
-		send_frame(frame1,data,strlen(data)+1);
+	do{
+		if(create_frame(frame1, ( ctrl_state << 6 )) )
+		{
+			send_frame(frame1,data,strlen(data)+1);
+			// Start timer
+			if(flag){
+				alarm(3);	// activate timer of 3s
+				flag=0;
+			}
+			while(n<0 && !flag)
+			{
+				n =	receive_frame(fd, &buf, MAX_FRAME);
+			}
+
+			if(flag)	continue;
+			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+			ctrl = ctrl >> 6;
+		}
 	}
+	while( (n <= 0 || ctrl != (ctrl_state+1)%2 ) && attempts < MAX_ATTEMPTS);
+
+	if(attempts >= MAX_ATTEMPTS) return -1;
 	return 1;
 }
