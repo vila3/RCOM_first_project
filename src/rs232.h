@@ -20,7 +20,7 @@
 #define CTRL_REJ 0x01
 #define MAX_FLAGS 6
 #define PAYLOAD MAX_FRAME-MAX_FLAGS
-#define MAX_ATTEMPTS 4
+#define MAX_ATTEMPTS 3
 
 #define TRANSMITTER 1
 #define RECEIVER 0
