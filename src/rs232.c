@@ -173,7 +173,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	int i=0;
 
 	*from_address = frame[i++];
-	*ctrl = frame[i++]>>6;
+	*ctrl = frame[i++];
 
 	if ((*from_address ^ *ctrl) != frame[i++]) {
 		return -1;
@@ -320,9 +320,12 @@ int llread(char** buff) {
 		data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 		n = read_frame(buf, n, data, &from_address, &ctrl);
 
-		if(create_frame(frame1, ctrl))
+		ctrl = ctrl >> 6;
+		char ctrl_rr = CTRL_RR | ((ctrl+1)%2) << 7;
+
+		if(create_frame(frame1, ctrl_rr))
 		{
-			send_frame(frame1,NULL,CTRL_RR);
+			send_frame(frame1,NULL,0);
 		}
 	} while(ctrl_state != ctrl);
 
