@@ -361,7 +361,7 @@ int llwrite(char *data){
 		}
 	}
 	while( (n <= 0 || ctrl != (ctrl_state+1)%2 ) && attempts < MAX_ATTEMPTS);
-
 	if(attempts >= MAX_ATTEMPTS) return -1;
+	ctrl_state = (ctrl_state+1)%2;
 	return 1;
 }

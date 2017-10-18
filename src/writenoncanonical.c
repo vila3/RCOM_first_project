@@ -22,6 +22,7 @@ int main(int argc, char** argv)
     llopen(argv[1], TRANSMITTER);
 
 	printf("Send string: \"String to ~ send!\"\n");
+	sleep(4000);
 	llwrite("String to ~ send!");
 
 	llclose();
