@@ -173,7 +173,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	int i=0;
 
 	*from_address = frame[i++];
-	*ctrl = frame[i++];
+	*ctrl = frame[i++]>>6;
 
 	if ((*from_address ^ *ctrl) != frame[i++]) {
 		return -1;
@@ -307,16 +307,26 @@ int llopen(char* serial_port, int mode) {
 }
 
 int llread(char** buff) {
-	char *buf, from_address, ctrl;
-	int n=-1;
+	char *buf, from_address, ctrl, frame1[MAX_FRAME] = {0x7e};
+	int n;
+	char *data;
 
-	while (n<0) {
-		n =	receive_frame(fd, &buf, MAX_FRAME);
-	}
+	do {
+		n=-1;
+		while (n<0) {
+			n =	receive_frame(fd, &buf, MAX_FRAME);
+		}
 
-	char *data = (char *) malloc( sizeof(char) * ( n - 3 ) );
-	n = read_frame(buf, n, data, &from_address, &ctrl);
+		data = (char *) malloc( sizeof(char) * ( n - 3 ) );
+		n = read_frame(buf, n, data, &from_address, &ctrl);
 
+		if(create_frame(frame1, ctrl))
+		{
+			send_frame(frame1,NULL,CTRL_RR);
+		}
+	} while(ctrl_state != ctrl);
+
+	ctrl_state = (ctrl_state+1)%2;
 	*buff = data;
 
 	return n;
@@ -357,7 +367,6 @@ int llwrite(char *data){
 			}
 			if(flag)	continue;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
-			ctrl = ctrl >> 6;
 		}
 	}
 	while( (n <= 0 || ctrl != (ctrl_state+1)%2 ) && attempts < MAX_ATTEMPTS);
