@@ -173,7 +173,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	int i=0;
 
 	*from_address = frame[i++];
-	*ctrl = frame[i++]>>6;
+	*ctrl = frame[i++];
 
 	if ((*from_address ^ *ctrl) != frame[i++]) {
 		return -1;
@@ -347,6 +347,7 @@ int llclose() {
 }
 
 int llwrite(char *data){
+	unsigned char ctrl_rr=0;
 	int n=-1;
 	char *buf;
 	char from_address, ctrl;
@@ -365,11 +366,16 @@ int llwrite(char *data){
 			{
 				n =	receive_frame(fd, &buf, MAX_FRAME);
 			}
+
 			if(flag)	continue;
+
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+			printf("Ctrl recebido: %x\n",ctrl);
+			ctrl_rr =  (ctrl_state+1)%2<<7 | CTRL_RR;
+			printf("Ctrl previsto: %x\n",ctrl_rr);
 		}
 	}
-	while( (n <= 0 || ctrl != (ctrl_state+1)%2 ) && attempts < MAX_ATTEMPTS);
+	while( (n < 0 || ctrl != ctrl_rr) && attempts < MAX_ATTEMPTS);
 	if(attempts >= MAX_ATTEMPTS) return -1;
 	ctrl_state = (ctrl_state+1)%2;
 	return 1;
