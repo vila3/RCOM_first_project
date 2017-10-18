@@ -12,7 +12,7 @@
 
 int debugging = 0;
 int flag=1, attempts=1;
-static unsigned char ctrl_state=0;
+static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
@@ -107,18 +107,20 @@ int create_frame(char *frame, char ctrl){
 }
 
 int send_frame(char *frame, char *data, int data_size){
-	int n,i,frame_size;
-
+	int n, frame_size;
+	char bcc2;
 	for(n=0;n<data_size;n++){
 		if(n==PAYLOAD) break;
 		frame[4+n]=data[n];
+		if (n==0) {
+			bcc2 = data[n];
+		} else {
+			bcc2 ^= data[n];
+		}
 	}
 	if(data_size){
 
-		frame[4+n]=frame[4]; // BCC2 with XOR across data
-		for(i=1;i<data_size;i++){
-			frame[4+n]^=frame[4+i];
-		}
+		frame[4+n]=bcc2;
 
 		frame[5+n]=0x7e; // end flag (with data)
 
@@ -350,6 +352,7 @@ int llclose() {
 }
 
 int llwrite(char *data){
+	char ctrl_rr;
 	int n=-1;
 	char *buf;
 	char from_address, ctrl;
@@ -368,11 +371,14 @@ int llwrite(char *data){
 			{
 				n =	receive_frame(fd, &buf, MAX_FRAME);
 			}
+
 			if(flag)	continue;
+
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+			ctrl_rr = CTRL_RR | ((ctrl_state+1)%2)<<7;
 		}
 	}
-	while( (n <= 0 || ctrl != (ctrl_state+1)%2 ) && attempts < MAX_ATTEMPTS);
+	while( (n < 0 || ctrl != ctrl_rr) && attempts < MAX_ATTEMPTS);
 	if(attempts >= MAX_ATTEMPTS) return -1;
 	ctrl_state = (ctrl_state+1)%2;
 	return 1;
