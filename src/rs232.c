@@ -10,7 +10,7 @@
 
 #include "rs232.h"
 
-int debugging = 0;
+int debugging = 1;
 int flag=1, attempts=1;
 
 void timeout_handler()                   // answer alarm
@@ -147,7 +147,11 @@ int receive_frame(int fd, char** buff, int buff_size) {
 
     while (init_frame==FALSE) {       /* loop for input */
       read(fd,&tmp,1);
-      if (tmp== 0x7E) init_frame=TRUE;
+      if (tmp== 0x7E)
+			{
+				init_frame=TRUE;
+				break;
+			}
       return -1;
     }
 	/* verify repeated flag */
@@ -231,7 +235,7 @@ int llopen(char* serial_port, int mode) {
     newtio.c_lflag = 0;
 
     newtio.c_cc[VTIME]    = 5;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
+    newtio.c_cc[VMIN]     = 0;   /* blocking read until N chars received */
 
     /*
       VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
@@ -244,15 +248,14 @@ int llopen(char* serial_port, int mode) {
         exit(-1);
     }
 
-	int n;
+	int n=-1;
 	char from_address, ctrl;
 	if (mode == TRANSMITTER) {
+		// Timeout implementation
+		(void) signal(SIGALRM, timeout_handler);  // instala  rotina que atende interrupcao
 		do {
 			if(create_frame(frame1,CTRL_SET))
 			{
-				// Timeout implementation
-				(void) signal(SIGALRM, timeout_handler);  // instala  rotina que atende interrupcao
-
 				send_frame(frame1, NULL, 0);
 				// Start timer
 				if(flag){
@@ -260,13 +263,20 @@ int llopen(char* serial_port, int mode) {
 					flag=0;
 				}
 			}
-
-			n =	receive_frame(fd, &buf, MAX_FRAME);
+			printf("Next: receive_frame\n");
+			while(n<0 && !flag)
+			{
+				n =	receive_frame(fd, &buf, MAX_FRAME);
+			}
+			printf("Before continue ctrl=%c attempts=%d flag=%d\n",ctrl,attempts,flag);
+			if(flag)	continue;
+			printf("Next: read_frame (n=%d) \n",n);
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
-			
+			//printf("n=\n");
+			printf("ctrl=%c attempts=%d flag=%d\n",ctrl,attempts,flag);
 		}
 		while (n != 0 && ctrl != CTRL_UA && attempts < 4);
-	
+
 		if(n == 0 && ctrl == CTRL_UA) {
 			attempts = 0;
 			if (debugging)
