@@ -54,6 +54,7 @@ int destuffing(char **frame, int frame_len) {
 	return n;
 }
 
+// falta também verificar o 7d, não é só o 7e
 int stuffing(char **frame, int frame_len){
 	int i,n_escape=0,stuffed_frame_len=0,n=0;
 
@@ -119,7 +120,7 @@ int send_frame(char *frame, char *data, int data_size){
 		}
 	}
 	if(data_size){
-
+		
 		frame[4+n]=bcc2;
 
 		frame[5+n]=0x7e; // end flag (with data)
@@ -127,7 +128,7 @@ int send_frame(char *frame, char *data, int data_size){
 		frame_size=n+6;
 	}
 	else{
-		frame[4]=0x7e; // end flag without data
+		frame[4]=0x7e; // end flag without data    -> acho que está feito na create_frame
 		frame_size=5;
 	}
 
@@ -196,17 +197,16 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 			data[i]=frame[i+3];
 		}
 
-		data[i] = 0;
+		// data[i] = 0; // --> explicação?????????
 
-
-		return i;
+		return i-1;
 	} else {
 		if (debugging)
 			printf("Bcc2 fail\n");
 	}
 
 	// TODO pedir trama novamente
-	return 0;
+	return -1;
 }
 
 int llopen(char* serial_port, int mode) {
@@ -351,7 +351,7 @@ int llclose() {
 	return 1;
 }
 
-int llwrite(char *data){
+int llwrite(int fd, char *data, int length){
 	char ctrl_rr;
 	int n=-1;
 	char *buf;
@@ -361,7 +361,7 @@ int llwrite(char *data){
 	do{
 		if(create_frame(frame1, ( ctrl_state << 6 )) )
 		{
-			send_frame(frame1,data,strlen(data)+1);
+			send_frame(frame1,data,strlen(data));
 			// Start timer
 			if(flag){
 				alarm(3);	// activate timer of 3s

@@ -21,6 +21,7 @@
 #define MAX_FLAGS 6
 #define PAYLOAD MAX_FRAME-MAX_FLAGS
 #define MAX_ATTEMPTS 3
+#define MAX_BUFFER_FILE 512
 
 #define TRANSMITTER 1
 #define RECEIVER 0
@@ -34,4 +35,4 @@ int llread();
 
 int llclose();
 
-int llwrite(char *data);
+int llwrite(int fd, char *data, int length);
