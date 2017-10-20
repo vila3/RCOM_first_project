@@ -10,18 +10,20 @@
 
 int main(int argc, char** argv)
 {
-    llopen(argv[1], RECEIVER);
+    int fd;
+
+    fd=llopen(argv[1], RECEIVER);
 
     char *data = NULL;
-    llread(&data);
+    llread(fd,&data);
 
     printf("%s\n", data);
 
-    llread(&data);
+    llread(fd,&data);
 
     printf("%s\n", data);
 
-    llclose();
+    llclose(fd);
 
     return 0;
 }

@@ -10,7 +10,7 @@
 
 #include "rs232.h"
 
-int debugging = 0;
+int debugging = 1;
 int flag=1, attempts=1;
 static char ctrl_state=0;
 
@@ -107,7 +107,7 @@ int create_frame(char *frame, char ctrl){
 	return 1;
 }
 
-int send_frame(char *frame, char *data, int data_size){
+int send_frame(int fd, char *frame, char *data, int data_size){
 	int n, frame_size;
 	char bcc2;
 
@@ -213,6 +213,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 int llopen(char* serial_port, int mode) {
     char *buf;
     char frame1[MAX_FRAME]={0x7e};
+		int fd;
 
 
     /*
@@ -259,7 +260,7 @@ int llopen(char* serial_port, int mode) {
 		do {
 			if(create_frame(frame1,CTRL_SET))
 			{
-				send_frame(frame1, NULL, 0);
+				send_frame(fd, frame1, NULL, 0);
 				// Start timer
 				if(flag){
 					alarm(3);	// activate timer of 3s
@@ -303,7 +304,7 @@ int llopen(char* serial_port, int mode) {
 				char frame1[MAX_FRAME];
 				if(create_frame(frame1, CTRL_UA))
 				{
-					send_frame(frame1, NULL, 0);
+					send_frame(fd, frame1, NULL, 0);
 				}
 
 				break;
@@ -312,10 +313,10 @@ int llopen(char* serial_port, int mode) {
 		if (debugging)
 			printf("Connection open, ready to read!\n");
 	}
-	return 1;
+	return fd;
 }
 
-int llread(char** buff) {
+int llread(int fd, char** buff) {
 	char *buf, from_address, ctrl, frame1[MAX_FRAME] = {0x7e};
 	int n;
 	char *data;
@@ -340,7 +341,7 @@ int llread(char** buff) {
 
 		if(create_frame(frame1, ctrl_rr))
 		{
-			send_frame(frame1,NULL,0);
+			send_frame(fd, frame1,NULL,0);
 		}
 	} while(ctrl_state != ctrl);
 
@@ -350,7 +351,7 @@ int llread(char** buff) {
 	return n;
 }
 
-int llclose() {
+int llclose(int fd) {
     if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
       exit(-1);
@@ -374,7 +375,7 @@ int llwrite(int fd, char *data, int length){
 	do{
 		if(create_frame(frame1, ( ctrl_state << 6 )))
 		{
-			send_frame(frame1,data,length);
+			send_frame(fd, frame1,data,length);
 
 			// Start timer
 			if(flag){

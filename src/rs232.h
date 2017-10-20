@@ -25,7 +25,6 @@
 #define TRANSMITTER 1
 #define RECEIVER 0
 
-int fd;
 struct termios oldtio,newtio;
 
 int llopen(char* serial_port, int mode);

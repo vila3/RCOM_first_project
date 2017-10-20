@@ -47,10 +47,10 @@ int create_packages(char *frame, char *data, int data_size, int *package_len){
 
 int main(int argc, char** argv)
 {
-	int fd;
+	int port,fd;
 	ssize_t bytes_read;
 	char *buffer;
-	int debugging=0;
+	int debugging=1;
 	//int i;
 	int file_byte_size, bytes_left, read_size, total_read;
 	// read port
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
       exit(1);
     }
 
-    llopen(argv[1], TRANSMITTER);
+    port = llopen(argv[1], TRANSMITTER);
 
 	// read file do transmit
 
@@ -71,11 +71,16 @@ int main(int argc, char** argv)
 			printf("Ficheiro aberto!\n");
 
 			bytes_left=file_byte_size=lseek(fd,0,SEEK_END);
+			lseek(fd,0,SEEK_SET);
+			printf("file_byte_size %d\n",file_byte_size);
+			printf("bytes_left %d\n",bytes_left);
 		do{
 			read_size=(bytes_left>PACK_NET_LEN)?PACK_NET_LEN:bytes_left;
+			printf("read_size %d\n",read_size);
 			bytes_read=read(fd,buffer,read_size);
+			llwrite(port,buffer,bytes_read);
 			bytes_left-=bytes_read;
-
+			printf("bytes_left after read %d\n",bytes_left);
 			total_read+=bytes_read;
 		}
 		while(bytes_left>0);
@@ -93,13 +98,13 @@ int main(int argc, char** argv)
 		printf("Ficheiro fechado!\n");
 	*/
 
-	printf("Send string: \"String to ~ send!\"\n");
+	// printf("Send string: \"String to ~ send!\"\n");
 	//sleep(4000);
-	llwrite(fd,"String to ~ send!\0",18);
-	llwrite(fd,"String ot ~ send!\0",18);
+	// llwrite(port,"String to ~ send!\0",18);
+	// llwrite(port,"String ot ~ send!\0",18);
 	//llwrite(fd,buffer,total_read);
 
-	llclose();
+	llclose(port);
 
 	return 0;
 }
