@@ -21,7 +21,6 @@
 #define MAX_FLAGS 6
 #define PAYLOAD MAX_FRAME-MAX_FLAGS
 #define MAX_ATTEMPTS 3
-#define MAX_BUFFER_FILE 512
 
 #define TRANSMITTER 1
 #define RECEIVER 0

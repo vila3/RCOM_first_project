@@ -135,7 +135,7 @@ int send_frame(char *frame, char *data, int data_size){
 
 	frame_size=stuffing(&frame,frame_size);
 
-	printf("bcc2 enviado: %x \n",frame[4+n]);
+	//printf("bcc2 enviado: %x \n",frame[4+n]);
 	n = write(fd,frame,frame_size);
 	return n;
 }

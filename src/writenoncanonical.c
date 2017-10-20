@@ -10,6 +10,10 @@
 #include <unistd.h>
 
 #include "rs232.h"
+
+#define PACK_HEAD_LEN 4
+#define PACK_NET_LEN PAYLOAD-PACK_HEAD_LEN
+
 int create_packages(char *frame, char *data, int data_size, int *package_len){
 	int i, w=4;
 	// start
@@ -43,12 +47,12 @@ int create_packages(char *frame, char *data, int data_size, int *package_len){
 
 int main(int argc, char** argv)
 {
-	//FILE *file;
-	//size_t cadence=1, size=1, read=0, total_read=0;
-	//char *buffer;
-	//int debugging=0;
+	int fd;
+	ssize_t bytes_read;
+	char *buffer;
+	int debugging=0;
 	//int i;
-
+	int file_byte_size, bytes_left, read_size, total_read;
 	// read port
 	if ( (argc < 2) ||
   	     (strstr(argv[1], "/dev/") == NULL)) {
@@ -59,19 +63,24 @@ int main(int argc, char** argv)
     llopen(argv[1], TRANSMITTER);
 
 	// read file do transmit
-	/*
-	buffer = (char*) malloc( sizeof(char) * MAX_BUFFER_FILE);
-	file = fopen("./penguin.gif","r");
-	if(file){
+
+	buffer = (char*) malloc( sizeof(char) * PAYLOAD);
+	fd = open(argv[2],O_RDONLY);
+	if(fd){
 		if(debugging)
 			printf("Ficheiro aberto!\n");
+
+			bytes_left=file_byte_size=lseek(fd,0,SEEK_END);
 		do{
-			read=fread(buffer,size,cadence,file);
-			total_read+=read;
+			read_size=(bytes_left>PACK_NET_LEN)?PACK_NET_LEN:bytes_left;
+			bytes_read=read(fd,buffer,read_size);
+			bytes_left-=bytes_read;
+
+			total_read+=bytes_read;
 		}
-		while(read>0);
-		printf("Número de bytes lidos: %zu\n",total_read);
-	}*/
+		while(bytes_left>0);
+		printf("Número de bytes lidos: %d\n",total_read); //10968
+	}
 
 	/*for(i=0; i<total_read; i++){
 		printf("%c",buffer[i]);
