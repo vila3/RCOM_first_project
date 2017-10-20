@@ -10,7 +10,7 @@
 
 #include "rs232.h"
 
-int debugging = 1;
+int debugging = 0;
 int flag=1, attempts=1;
 static char ctrl_state=0;
 
@@ -127,7 +127,7 @@ int send_frame(char *frame, char *data, int data_size){
 			bcc2 ^= frame[5+i];
 		}
 		frame[4+n]=bcc2;
-		printf("bcc2 enviado: %x \n",frame[4+n]);
+		//printf("bcc2 enviado: %x \n",frame[4+n]);
 		frame[5+n]=0x7e; // end flag (with data)
 
 		frame_size=n+6;
@@ -147,23 +147,21 @@ int send_frame(char *frame, char *data, int data_size){
 int receive_frame(int fd, char** buff, int buff_size) {
 
 	*buff = malloc(sizeof(char) * MAX_FRAME);
-	if (debugging)
-    	printf("\nWaiting transmission...\n");
 
 	char tmp;
 
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
 
-    while (init_frame==FALSE) {       /* loop for input */
-      read(fd,&tmp,1);
-      if (tmp== 0x7E)
-			{
-				init_frame=TRUE;
-				break;
-			}
-      return -1;
-    }
+  while (init_frame==FALSE) {       /* loop for input */
+    read(fd,&tmp,1);
+    if (tmp== 0x7E)
+		{
+			init_frame=TRUE;
+			break;
+		}
+    return -1;
+  }
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
     if (tmp != 0x7E) (*buff)[i++] = tmp;
@@ -294,8 +292,13 @@ int llopen(char* serial_port, int mode) {
 		}
 	}
 	else {
+		if (debugging)
+	    	printf("\nWaiting transmission...\n");
 		while(1) {
-			n = receive_frame(fd, &buf, MAX_FRAME);
+			while (n<0) {
+				n =	receive_frame(fd, &buf, MAX_FRAME);
+			}
+
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 			if (ctrl == CTRL_SET) {
@@ -319,17 +322,23 @@ int llread(char** buff) {
 	int n;
 	char *data;
 
+	if (debugging)
+			printf("\nWaiting transmission...\n");
 	do {
+		buf=NULL;
 		n=-1;
 		while (n<0) {
 			n =	receive_frame(fd, &buf, MAX_FRAME);
 		}
-
 		data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 		n = read_frame(buf, n, data, &from_address, &ctrl);
 
 		ctrl = ctrl >> 6;
-		char ctrl_rr = CTRL_RR | ((ctrl+1)%2) << 7;
+		char next=1;
+		if (n<0) {
+			next=0;
+		}
+		char ctrl_rr = CTRL_RR | ((ctrl+next)%2) << 7;
 
 		if(create_frame(frame1, ctrl_rr))
 		{

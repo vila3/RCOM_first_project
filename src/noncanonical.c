@@ -17,6 +17,10 @@ int main(int argc, char** argv)
 
     printf("%s\n", data);
 
+    llread(&data);
+
+    printf("%s\n", data);
+
     llclose();
 
     return 0;
