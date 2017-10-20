@@ -108,7 +108,7 @@ int create_frame(char *frame, char ctrl){
 }
 
 int send_frame(char *frame, char *data, int data_size){
-	int n, frame_size, i=0;
+	int n, frame_size;
 	char bcc2;
 
 	for(n=0;n<data_size;n++){
@@ -122,12 +122,8 @@ int send_frame(char *frame, char *data, int data_size){
 	}
 	if(data_size){
 
-		bcc2=frame[4+i];
-		for(i=0;i<PAYLOAD;i++){
-			bcc2 ^= frame[5+i];
-		}
 		frame[4+n]=bcc2;
-		printf("bcc2 enviado: %x \n",frame[4+n]);
+
 		frame[5+n]=0x7e; // end flag (with data)
 
 		frame_size=n+6;
@@ -139,6 +135,7 @@ int send_frame(char *frame, char *data, int data_size){
 
 	frame_size=stuffing(&frame,frame_size);
 
+	printf("bcc2 enviado: %x \n",frame[4+n]);
 	n = write(fd,frame,frame_size);
 	return n;
 }
@@ -279,6 +276,7 @@ int llopen(char* serial_port, int mode) {
 
 			if(flag)	continue;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+
 		}
 		while (n != 0 && ctrl != CTRL_UA && attempts < MAX_ATTEMPTS);
 
@@ -365,9 +363,10 @@ int llwrite(int fd, char *data, int length){
 	// Include a string in a frame and send it
 	char frame1[MAX_FRAME]={0x7e};
 	do{
-		if(create_frame(frame1, ( ctrl_state << 6 )) )
+		if(create_frame(frame1, ( ctrl_state << 6 )))
 		{
-			send_frame(frame1,data,strlen(data));
+			send_frame(frame1,data,length);
+
 			// Start timer
 			if(flag){
 				alarm(3);	// activate timer of 3s

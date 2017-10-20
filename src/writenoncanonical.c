@@ -86,7 +86,8 @@ int main(int argc, char** argv)
 
 	printf("Send string: \"String to ~ send!\"\n");
 	//sleep(4000);
-	llwrite(fd,"String to ~ send!\0",17);
+	llwrite(fd,"String to ~ send!\0",18);
+	llwrite(fd,"String ot ~ send!\0",18);
 	//llwrite(fd,buffer,total_read);
 
 	llclose();
