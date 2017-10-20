@@ -10,13 +10,43 @@
 #include <unistd.h>
 
 #include "rs232.h"
+int create_packages(char *frame, char *data, int data_size, int *package_len){
+	int i, w=4;
+	// start
+		frame[w++]=0x02; // Control field (2 - start)
+
+		// Type, length and Value
+		frame[w++]=0x00; // T1=0 - File size
+		frame[w++]=sizeof(data_size); // L1=2 - Length of V (next field)
+		frame[w++]=data_size;	   // V1
+
+	// insert
+		frame[w++]=0x01; // Control field (1 - data)
+		frame[w++]=0;//TODO sequence_number; // N - Sequence (N)umber
+		frame[w++]=0; // L2 - TODO
+		frame[w++]=0; // L1 - TODO
+		// loop por insert
+		for(i=0; (i<(PAYLOAD-w)) && (i<data_size) ;i++){
+			frame[w++]=data[i];
+		}
+
+	// end
+		frame[w++]=0x03; // Control field (3 - end)
+
+		if(i==data_size)
+			return 1; // needs more frames to send data
+		else if(i<data_size)
+			return 0; // all data included in package
+		else
+			return -1;
+}
 
 int main(int argc, char** argv)
 {
-	FILE *file;
-	size_t cadence=1, size=1, read=0, total_read=0;
-	char *buffer;
-	int debugging=0;
+	//FILE *file;
+	//size_t cadence=1, size=1, read=0, total_read=0;
+	//char *buffer;
+	//int debugging=0;
 	//int i;
 
 	// read port
@@ -29,7 +59,8 @@ int main(int argc, char** argv)
     llopen(argv[1], TRANSMITTER);
 
 	// read file do transmit
-	buffer = (char*) malloc( sizeof(char) * MAX_BUFFER_FILE); 
+	/*
+	buffer = (char*) malloc( sizeof(char) * MAX_BUFFER_FILE);
 	file = fopen("./penguin.gif","r");
 	if(file){
 		if(debugging)
@@ -40,21 +71,23 @@ int main(int argc, char** argv)
 		}
 		while(read>0);
 		printf("Número de bytes lidos: %zu\n",total_read);
-	}
+	}*/
 
 	/*for(i=0; i<total_read; i++){
 		printf("%c",buffer[i]);
 	}*/
-	
+
 	// close file to transmit
+	/*
 	fclose(file);
 	if(debugging)
 		printf("Ficheiro fechado!\n");
+	*/
 
-
-	//printf("Send string: \"String to ~ send!\"\n");
+	printf("Send string: \"String to ~ send!\"\n");
 	//sleep(4000);
-	llwrite(fd,buffer,total_read);
+	llwrite(fd,"String to ~ send!\0",17);
+	//llwrite(fd,buffer,total_read);
 
 	llclose();
 
