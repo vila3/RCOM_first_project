@@ -86,6 +86,30 @@ int stuffing(char **frame, int frame_len){
 	return stuffed_frame_len;
 }
 
+int create_packages(char *frame, char *data, int data_size, int *sequence_number){
+	int i, w=4;
+	// start
+		frame[w++]=0x02; // Control field (2 - start)
+
+		// Type, length and Value
+		frame[w++]=0x00; // T1=0 - File size
+		frame[w++]=sizeof(data_size); // L1=2 - Length of V (next field)
+		frame[w++]=data_size;	   // V1
+	
+	// insert
+		frame[w++]=0x01; // Control field (1 - data)
+		frame[w++]=sequence_number; // N - Sequence (N)umber
+		frame[w++]=0; // L2 - TODO
+		frame[w++]=0; // L1 - TODO
+		// loop por insert
+		for(i=0; (i<(PAYLOAD-w)) && (i<data_size) ;i++){
+			frame[w++]=data[i];
+		}
+
+	// end
+		frame[w++]=0x03; // Control field (3 - end)
+}
+
 int create_frame(char *frame, char ctrl){
 	//int n;
 	/*for(n=0;n<MAX_FRAME;n++){
@@ -120,7 +144,7 @@ int send_frame(char *frame, char *data, int data_size){
 		}
 	}
 	if(data_size){
-		
+
 		frame[4+n]=bcc2;
 
 		frame[5+n]=0x7e; // end flag (with data)
@@ -137,6 +161,7 @@ int send_frame(char *frame, char *data, int data_size){
 	n = write(fd,frame,frame_size);
 	return n;
 }
+
 
 int receive_frame(int fd, char** buff, int buff_size) {
 
