@@ -5,22 +5,30 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "rs232.h"
 
 int main(int argc, char** argv)
 {
-    int fd, n;
+    int port, n, fd;
 
-    fd=llopen(argv[1], RECEIVER);
+    port=llopen(argv[1], RECEIVER);
 
-    char *data = NULL;
+    fd = open(argv[2], O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR|S_IXUSR);
+
+
+    char *data;
 
     do {
-      n = llread(fd,&data);
+      n = llread(port,&data);
+      if (n<=0) break;
+      write(fd, data, n);
+      free(data);
+      data = NULL;
     } while(n>0);
 
-    llclose(fd);
+    llclose(port);
 
     return 0;
 }

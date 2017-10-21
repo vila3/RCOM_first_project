@@ -25,7 +25,7 @@ void print_frame(char *frame, int len) {
 	printf("Frame: ");
 	int i;
 	for (i = 0; i < len; i++) {
-		printf("%x", frame[i]);
+		printf("%x ", frame[i]);
 	}
 	printf("\n");
 	printf("Frame: ");
@@ -141,9 +141,9 @@ int send_frame(int fd, char *frame, char *data, int data_size){
 }
 
 
-int receive_frame(int fd, char** buff, int buff_size) {
+int receive_frame(int fd, char** buff) {
 
-	*buff = malloc(sizeof(char) * MAX_FRAME);
+	*buff = malloc(sizeof(char) * 2 * MAX_FRAME);
 
 	char tmp;
 
@@ -162,11 +162,13 @@ int receive_frame(int fd, char** buff, int buff_size) {
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
     if (tmp != 0x7E) (*buff)[i++] = tmp;
-	while (i < buff_size) {
+	while (i < 2 * MAX_FRAME) {
 		read(fd, &tmp, 1);
     	if (tmp == 0x7E) break;
     	(*buff)[i++] = tmp;
 	}
+
+	print_frame(*buff, i);
 
 	i = destuffing(buff, i);
 
@@ -200,9 +202,10 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 
 		// data[i] = 0; // --> explicação?????????
 
-		return i-1;
+		return i;
 	} else {
 		if (debugging)
+			print_frame(frame, frame_len);
 			printf("Bcc2 fail\n");
 	}
 
@@ -270,7 +273,7 @@ int llopen(char* serial_port, int mode) {
 
 			while(n<0 && !flag)
 			{
-				n =	receive_frame(fd, &buf, MAX_FRAME);
+				n =	receive_frame(fd, &buf);
 			}
 
 			if(flag)	continue;
@@ -295,7 +298,7 @@ int llopen(char* serial_port, int mode) {
 	    	printf("\nWaiting transmission...\n");
 		while(1) {
 			while (n<0) {
-				n =	receive_frame(fd, &buf, MAX_FRAME);
+				n =	receive_frame(fd, &buf);
 			}
 
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
@@ -317,7 +320,7 @@ int llopen(char* serial_port, int mode) {
 }
 
 int llread(int fd, char** buff) {
-	char *buf, from_address, ctrl, frame1[MAX_FRAME] = {0x7e};
+	char *buf, from_address, ctrl, frame1[2*MAX_FRAME] = {0x7e};
 	int n;
 	char *data;
 
@@ -327,7 +330,7 @@ int llread(int fd, char** buff) {
 		buf=NULL;
 		n=-1;
 		while (n<0) {
-			n =	receive_frame(fd, &buf, MAX_FRAME);
+			n =	receive_frame(fd, &buf);
 		}
 		data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 		n = read_frame(buf, n, data, &from_address, &ctrl);
@@ -341,7 +344,7 @@ int llread(int fd, char** buff) {
 
 			do {
 				do {
-					n =	receive_frame(fd, &buf, MAX_FRAME);
+					n =	receive_frame(fd, &buf);
 				} while (n<0);
 				data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 				n = read_frame(buf, n, data, &from_address, &ctrl);
@@ -350,6 +353,14 @@ int llread(int fd, char** buff) {
 
 			stop=1;
 			return 0;
+		} else if (ctrl == CTRL_SET) {
+			char frame1[MAX_FRAME];
+			if(create_frame(frame1, CTRL_UA))
+			{
+				send_frame(fd, frame1, NULL, 0);
+			}
+
+			continue;
 		}
 
 		ctrl = ctrl >> 6;
@@ -395,7 +406,7 @@ int llclose(int fd) {
 					}
 					while(n<0 && !flag)
 					{
-						n =	receive_frame(fd, &buf, MAX_FRAME);
+						n =	receive_frame(fd, &buf);
 					}
 
 					if(flag)	continue;
@@ -440,7 +451,7 @@ int llwrite(int fd, char *data, int length){
 			}
 			while(n<0 && !flag)
 			{
-				n =	receive_frame(fd, &buf, MAX_FRAME);
+				n =	receive_frame(fd, &buf);
 			}
 
 			if(flag)	continue;
