@@ -26,7 +26,7 @@ int main(int argc, char** argv)
       write(fd, data, n);
       free(data);
       data = NULL;
-    } while(n>0);
+    } while(1);
 
     llclose(port);
 

@@ -133,12 +133,10 @@ int send_frame(int fd, char *frame, char *data, int data_size){
 		frame_size=5;
 	}
 
-	printf("pinuts\n\n");
-	print_frame(frame,frame_size);
 	frame_size=stuffing(&frame,frame_size);
 
 	//printf("bcc2 enviado: %x \n",frame[4+n]);
-	print_frame(frame,frame_size); // TODO prever quando  acabar mais cedo
+	// TODO prever quando  acabar mais cedo
 	write(fd,frame,frame_size);
 	return n;
 }
@@ -170,8 +168,6 @@ int receive_frame(int fd, char** buff) {
     	if (tmp == 0x7E) break;
     	(*buff)[i++] = tmp;
 	}
-
-	print_frame(*buff, i);
 
 	i = destuffing(buff, i);
 
@@ -208,7 +204,6 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 		return i;
 	} else {
 		if (debugging)
-			print_frame(frame, frame_len);
 			printf("Bcc2 fail\n");
 	}
 
@@ -349,8 +344,20 @@ int llread(int fd, char** buff) {
 				do {
 					n =	receive_frame(fd, &buf);
 				} while (n<0);
+				print_frame(buf, n);
 				data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 				n = read_frame(buf, n, data, &from_address, &ctrl);
+
+				printf("n: %d\n", n);
+				printf("ctrl: %x\n", ctrl);
+				printf("ctrl_ua: %x\n", CTRL_UA);
+				
+				if (ctrl == CTRL_DISC) {
+					if(create_frame(frame1, CTRL_DISC))
+					{
+						send_frame(fd, frame1,NULL,0);
+					}
+				}
 
 			} while(n<0 || ctrl != CTRL_UA);
 
