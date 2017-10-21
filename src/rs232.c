@@ -11,12 +11,13 @@
 #include "rs232.h"
 
 int debugging = 1;
-int flag=1, attempts=1, stop=0;
+int flag=1, attempts=1, stop=0, interrupt_alarm=0;
 static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
-	printf("Passaram 3 segundos: # %d, vamos tentar novamente\n", attempts);
+	if(!interrupt_alarm)
+		printf("Passaram 3 segundos: # %d, vamos tentar novamente\n", attempts);
 	flag=1;
 	attempts++;
 }
@@ -135,9 +136,7 @@ int send_frame(int fd, char *frame, char *data, int data_size){
 
 	frame_size=stuffing(&frame,frame_size);
 
-	//printf("bcc2 enviado: %x \n",frame[4+n]);
-	// TODO prever quando  acabar mais cedo
-	write(fd,frame,frame_size);
+	write(fd,frame,frame_size); // TODO prever quando  acabar mais cedo
 	return n;
 }
 
@@ -264,6 +263,7 @@ int llopen(char* serial_port, int mode) {
 				send_frame(fd, frame1, NULL, 0);
 				// Start timer
 				if(flag){
+					interrupt_alarm=0;
 					alarm(3);	// activate timer of 3s
 					flag=0;
 				}
@@ -275,6 +275,7 @@ int llopen(char* serial_port, int mode) {
 			}
 
 			if(flag)	continue;
+			interrupt_alarm=1;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 		}
@@ -351,7 +352,7 @@ int llread(int fd, char** buff) {
 				printf("n: %d\n", n);
 				printf("ctrl: %x\n", ctrl);
 				printf("ctrl_ua: %x\n", CTRL_UA);
-				
+
 				if (ctrl == CTRL_DISC) {
 					if(create_frame(frame1, CTRL_DISC))
 					{
@@ -405,12 +406,14 @@ int llclose(int fd) {
 		if (stop!=1) {
 			char frame1[MAX_FRAME]={0x7e};
 			do{
+				n=-1;
 				if(create_frame(frame1,CTRL_DISC))
 				{
 					send_frame(fd, frame1,NULL,0);
 
 					// Start timer
 					if(flag){
+						interrupt_alarm=0;
 						alarm(3);	// activate timer of 3s
 						flag=0;
 					}
@@ -420,11 +423,15 @@ int llclose(int fd) {
 					}
 
 					if(flag)	continue;
-
+					interrupt_alarm=1;
 					n = read_frame(buf, n, NULL, &from_address, &ctrl);
+
+					printf("%c",ctrl);
+
 				}
 			}
 			while(ctrl!=CTRL_DISC);
+
 
 			// Send final UA
 			char frame2[MAX_FRAME];
@@ -456,6 +463,7 @@ int llwrite(int fd, char *data, int length){
 
 			// Start timer
 			if(flag){
+				interrupt_alarm=0;
 				alarm(3);	// activate timer of 3s
 				flag=0;
 			}
@@ -465,7 +473,7 @@ int llwrite(int fd, char *data, int length){
 			}while(n<0 && !flag);
 
 			if(flag)	continue;
-
+			interrupt_alarm=1;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 			ctrl_rr = CTRL_RR | ((ctrl_state+1)%2)<<7;
 		}
