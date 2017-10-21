@@ -48,11 +48,11 @@ int create_packages(char *frame, char *data, int data_size, int *package_len){
 int main(int argc, char** argv)
 {
 	int port,fd;
-	ssize_t bytes_read;
+	ssize_t bytes_read, bytes_write;
 	char *buffer;
 	int debugging=1;
 	//int i;
-	int file_byte_size, bytes_left, read_size, total_read;
+	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0;
 	// read port
 	if ( (argc < 2) ||
   	     (strstr(argv[1], "/dev/") == NULL)) {
@@ -75,18 +75,20 @@ int main(int argc, char** argv)
 			printf("file_byte_size %d\n",file_byte_size);
 			printf("bytes_left %d\n",bytes_left);
 		do{
+			lseek(fd,file_byte_size-bytes_left,SEEK_SET);
 			read_size=(bytes_left>PACK_NET_LEN)?PACK_NET_LEN:bytes_left;
 			printf("read_size %d\n",read_size);
 			bytes_read=read(fd,buffer,read_size);
-			llwrite(port,buffer,bytes_read);
+			bytes_write=llwrite(port,buffer,bytes_read);
 			bytes_left-=bytes_read;
 			printf("bytes_left after read %d\n",bytes_left);
 			total_read+=bytes_read;
+			total_write+=bytes_write;
 		}
 		while(bytes_left>0);
 		printf("Número de bytes lidos: %d\n",total_read); //10968
+		printf("Número de bytes escritos: %d\n",total_write); //10968
 	}
-
 	/*for(i=0; i<total_read; i++){
 		printf("%c",buffer[i]);
 	}*/
