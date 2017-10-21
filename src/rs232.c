@@ -196,7 +196,7 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 		bcc_check^=frame[3+i];
 	}
 
-	if (data == NULL) return 0;
+	if (data == NULL || frame_len < 4) return 0;
 
 	if (bcc2 == bcc_check) {
 		for(i=0; i<frame_len-4;i++){
