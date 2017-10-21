@@ -372,10 +372,44 @@ int llread(int fd, char** buff) {
 }
 
 int llclose(int fd) {
+
+		int n;
+		char from_address, ctrl, *buf;
+
     if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
+
+		char frame1[MAX_FRAME]={0x7e};
+		do{
+			if(create_frame(frame1,CTRL_DISC))
+			{
+				send_frame(fd, frame1,NULL,0);
+
+				// Start timer
+				if(flag){
+					alarm(3);	// activate timer of 3s
+					flag=0;
+				}
+				while(n<0 && !flag)
+				{
+					n =	receive_frame(fd, &buf, MAX_FRAME);
+				}
+
+				if(flag)	continue;
+
+				n = read_frame(buf, n, NULL, &from_address, &ctrl);
+			}
+		}
+		while(ctrl!=CTRL_DISC);
+
+		// Send final UA
+		char frame2[MAX_FRAME];
+		if(create_frame(frame2, CTRL_UA))
+		{
+			send_frame(fd, frame2, NULL, 0);
+		}
 
     close(fd);
 
