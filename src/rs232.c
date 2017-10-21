@@ -385,7 +385,7 @@ int llread(int fd, char** buff) {
 		{
 			send_frame(fd, frame1,NULL,0);
 		}
-	} while(ctrl_state != ctrl);
+	} while(ctrl_state != ctrl || n<0);
 
 	ctrl_state = (ctrl_state+1)%2;
 	*buff = data;
