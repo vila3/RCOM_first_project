@@ -334,7 +334,7 @@ int llread(int fd, char** buff) {
 
 		if (ctrl == CTRL_DISC) {
 
-			if(create_frame(frame1, ctrl_rr))
+			if(create_frame(frame1, CTRL_DISC))
 			{
 				send_frame(fd, frame1,NULL,0);
 			}
@@ -381,34 +381,36 @@ int llclose(int fd) {
       exit(-1);
     }
 
-		char frame1[MAX_FRAME]={0x7e};
-		do{
-			if(create_frame(frame1,CTRL_DISC))
-			{
-				send_frame(fd, frame1,NULL,0);
-
-				// Start timer
-				if(flag){
-					alarm(3);	// activate timer of 3s
-					flag=0;
-				}
-				while(n<0 && !flag)
+		if (stop!=1) {
+			char frame1[MAX_FRAME]={0x7e};
+			do{
+				if(create_frame(frame1,CTRL_DISC))
 				{
-					n =	receive_frame(fd, &buf, MAX_FRAME);
+					send_frame(fd, frame1,NULL,0);
+
+					// Start timer
+					if(flag){
+						alarm(3);	// activate timer of 3s
+						flag=0;
+					}
+					while(n<0 && !flag)
+					{
+						n =	receive_frame(fd, &buf, MAX_FRAME);
+					}
+
+					if(flag)	continue;
+
+					n = read_frame(buf, n, NULL, &from_address, &ctrl);
 				}
-
-				if(flag)	continue;
-
-				n = read_frame(buf, n, NULL, &from_address, &ctrl);
 			}
-		}
-		while(ctrl!=CTRL_DISC);
+			while(ctrl!=CTRL_DISC);
 
-		// Send final UA
-		char frame2[MAX_FRAME];
-		if(create_frame(frame2, CTRL_UA))
-		{
-			send_frame(fd, frame2, NULL, 0);
+			// Send final UA
+			char frame2[MAX_FRAME];
+			if(create_frame(frame2, CTRL_UA))
+			{
+				send_frame(fd, frame2, NULL, 0);
+			}
 		}
 
     close(fd);
