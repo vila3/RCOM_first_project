@@ -11,7 +11,7 @@
 #include "rs232.h"
 
 int debugging = 1;
-int flag=1, attempts=1;
+int flag=1, attempts=1, stop=0;
 static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
@@ -331,6 +331,26 @@ int llread(int fd, char** buff) {
 		}
 		data = (char *) malloc( sizeof(char) * ( n - 3 ) );
 		n = read_frame(buf, n, data, &from_address, &ctrl);
+
+		if (ctrl == CTRL_DISC) {
+
+			if(create_frame(frame1, ctrl_rr))
+			{
+				send_frame(fd, frame1,NULL,0);
+			}
+
+			do {
+				do {
+					n =	receive_frame(fd, &buf, MAX_FRAME);
+				} while (n<0);
+				data = (char *) malloc( sizeof(char) * ( n - 3 ) );
+				n = read_frame(buf, n, data, &from_address, &ctrl);
+
+			} while(n<0 || ctrl != CTRL_UA);
+
+			stop=1;
+			return 0;
+		}
 
 		ctrl = ctrl >> 6;
 		char next=1;

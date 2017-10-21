@@ -10,18 +10,15 @@
 
 int main(int argc, char** argv)
 {
-    int fd;
+    int fd, n;
 
     fd=llopen(argv[1], RECEIVER);
 
     char *data = NULL;
-    llread(fd,&data);
 
-    printf("%s\n", data);
-
-    llread(fd,&data);
-
-    printf("%s\n", data);
+    do {
+      n = llread(fd,&data);
+    } while(n>0);
 
     llclose(fd);
 
