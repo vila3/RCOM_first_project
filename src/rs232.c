@@ -25,7 +25,7 @@ void print_frame(char *frame, int len) {
 	printf("Frame: ");
 	int i;
 	for (i = 0; i < len; i++) {
-		printf("%x", frame[i]);
+		printf("%x ", frame[i]);
 	}
 	printf("\n");
 	printf("Frame: ");
@@ -59,7 +59,7 @@ int stuffing(char **frame, int frame_len){
 	int i,n_escape=0,stuffed_frame_len=0,n=0;
 
 	for(i = 1; i < frame_len-1; i++){
-		if((*frame)[i] == 0x7e)
+		if( (*frame)[i] == 0x7e || (*frame)[i] == 0x7d )
 			n_escape++;
 			//printf("\nNumero de escapes:%d\n",n_escape);
 	}
@@ -72,7 +72,7 @@ int stuffing(char **frame, int frame_len){
 	char *stuffed_frame = (char*) malloc(sizeof(char)*stuffed_frame_len);
 
 	for(i = 0; i < frame_len; i++){
-		if((*frame)[i] == 0x7e && i>0 && i<frame_len-1){
+		if(( (*frame)[i] == 0x7e || (*frame)[i] == 0x7d) && i>0 && i<frame_len-1){
 			stuffed_frame[n+1] = 0x20^(*frame)[i];
 			stuffed_frame[n] = 0x7d;
 			n += 2;
@@ -133,10 +133,13 @@ int send_frame(int fd, char *frame, char *data, int data_size){
 		frame_size=5;
 	}
 
+	printf("pinuts\n\n");
+	print_frame(frame,frame_size);
 	frame_size=stuffing(&frame,frame_size);
 
 	//printf("bcc2 enviado: %x \n",frame[4+n]);
-	n = write(fd,frame,frame_size);
+	print_frame(frame,frame_size); // TODO prever quando  acabar mais cedo
+	write(fd,frame,frame_size);
 	return n;
 }
 
@@ -438,10 +441,10 @@ int llwrite(int fd, char *data, int length){
 				alarm(3);	// activate timer of 3s
 				flag=0;
 			}
-			while(n<0 && !flag)
+			do
 			{
 				n =	receive_frame(fd, &buf, MAX_FRAME);
-			}
+			}while(n<0 && !flag);
 
 			if(flag)	continue;
 
