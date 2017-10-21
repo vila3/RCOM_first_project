@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	int port,fd;
 	ssize_t bytes_read, bytes_write;
 	char *buffer;
-	int debugging=1;
+	int debugging=0;
 	//int i;
 	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0;
 	// read port
@@ -72,39 +72,22 @@ int main(int argc, char** argv)
 
 			bytes_left=file_byte_size=lseek(fd,0,SEEK_END);
 			lseek(fd,0,SEEK_SET);
-			printf("file_byte_size %d\n",file_byte_size);
-			printf("bytes_left %d\n",bytes_left);
+
 		do{
 			lseek(fd,file_byte_size-bytes_left,SEEK_SET);
 			read_size=(bytes_left>PACK_NET_LEN)?PACK_NET_LEN:bytes_left;
-			printf("read_size %d\n",read_size);
+
 			bytes_read=read(fd,buffer,read_size);
 			bytes_write=llwrite(port,buffer,bytes_read);
 			bytes_left-=bytes_read;
-			printf("bytes_left after read %d\n",bytes_left);
+
 			total_read+=bytes_read;
 			total_write+=bytes_write;
 		}
 		while(bytes_left>0);
-		printf("Número de bytes lidos: %d\n",total_read); //10968
-		printf("Número de bytes escritos: %d\n",total_write); //10968
+		// printf("Número de bytes lidos: %d\n",total_read); //10968
+		// printf("Número de bytes escritos: %d\n",total_write); //10968
 	}
-	/*for(i=0; i<total_read; i++){
-		printf("%c",buffer[i]);
-	}*/
-
-	// close file to transmit
-	/*
-	fclose(file);
-	if(debugging)
-		printf("Ficheiro fechado!\n");
-	*/
-
-	// printf("Send string: \"String to ~ send!\"\n");
-	//sleep(4000);
-	// llwrite(port,"String to ~ send!\0",18);
-	// llwrite(port,"String ot ~ send!\0",18);
-	//llwrite(fd,buffer,total_read);
 
 	llclose(port);
 
