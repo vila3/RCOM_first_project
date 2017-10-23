@@ -27,6 +27,8 @@
 
 struct termios oldtio,newtio;
 
+void print_frame(char *frame, int len);
+
 int llopen(char* serial_port, int mode);
 
 int llread();

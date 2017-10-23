@@ -28,8 +28,8 @@ int read_package_ctr_size(char *pack, int pack_len) {
 			}
 			return file_size;
 		}
-
-		i += pack[++i];
+		i++;
+		i += pack[i];
 	}
 
 	return -1;
@@ -47,8 +47,8 @@ int read_package_ctr_name(char *pack, int pack_len, char **name) {
 			*name = new_name;
 			return pack[i+1];
 		}
-
-		i += pack[++i];
+		i++;
+		i += pack[i];
 	}
 
 	return -1;
@@ -84,8 +84,8 @@ int main(int argc, char** argv)
 	// printf("size: %d\n", file_size);
 	// printf("name: %s\n", name);
 
-    int port, n, fd, file_size, name_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i;
-	char *name, *file_arr, *pack_data;
+    int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i;
+	char *file_arr, *pack_data;
 
     port=llopen(argv[1], RECEIVER);
 
