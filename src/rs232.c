@@ -151,7 +151,7 @@ int receive_frame(int fd, char** buff) {
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
 
-  while (init_frame==FALSE && !flag) {       /* loop for input */
+  while (init_frame==FALSE) {       /* loop for input */
     read(fd,&tmp,1);
     if (tmp== 0x7E)
 		{
@@ -163,7 +163,7 @@ int receive_frame(int fd, char** buff) {
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
     if (tmp != 0x7E) (*buff)[i++] = tmp;
-	while (i < 2 * MAX_FRAME && !flag) {
+	while (i < 2 * MAX_FRAME) {
 		read(fd, &tmp, 1);
     	if (tmp == 0x7E) break;
     	(*buff)[i++] = tmp;
@@ -401,11 +401,6 @@ int llclose(int fd) {
 		int n;
 		char from_address, ctrl, *buf;
 
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
-
 		if (stop!=1 && (attempts < MAX_ATTEMPTS) ) {
 			char frame1[MAX_FRAME]={0x7e};
 			do{
@@ -443,6 +438,13 @@ int llclose(int fd) {
 				send_frame(fd, frame2, NULL, 0);
 			}
 		}
+
+		sleep(1);
+
+		if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+      perror("tcsetattr");
+      exit(-1);
+    }
 
     close(fd);
 
