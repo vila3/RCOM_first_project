@@ -10,13 +10,8 @@
 
 #include "rs232.h"
 
-<<<<<<< HEAD
 int debugging = 0;
-int flag=1, attempts=1, stop=0, interrupt_alarm=0;
-=======
-int debugging = 1;
 int flag=1, attempts=0, stop=0, interrupt_alarm=0;
->>>>>>> 560343aa6b6eaf70415c17682512b02804d5dc14
 static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
