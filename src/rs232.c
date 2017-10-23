@@ -10,7 +10,7 @@
 
 #include "rs232.h"
 
-int debugging = 1;
+int debugging = 0;
 int flag=1, attempts=1, stop=0, interrupt_alarm=0;
 static char ctrl_state=0;
 
@@ -180,6 +180,8 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	*ctrl = frame[i++];
 
 	if ((*from_address ^ *ctrl) != frame[i++]) {
+		if (debugging)
+			printf("Bcc1 fail\n");
 		return -1;
 	}
 
@@ -376,10 +378,10 @@ int llread(int fd, char** buff) {
 
 		ctrl = ctrl >> 6;
 		char next=1;
-		if (n<0) {
+		if (n<0 || ctrl_state != ctrl) {
 			next=0;
 		}
-		char ctrl_rr = CTRL_RR | ((ctrl+next)%2) << 7;
+		char ctrl_rr = CTRL_RR | ((ctrl_state+next)%2) << 7;
 
 		if(create_frame(frame1, ctrl_rr))
 		{

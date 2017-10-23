@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 
     port=llopen(argv[1], RECEIVER);
 
-    fd = open(argv[2], O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR|S_IXUSR);
+    fd = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR);
 
 
     char *data;
