@@ -12,7 +12,7 @@
 #define FALSE 0
 #define TRUE 1
 
-#define MAX_FRAME 512
+#define MAX_FRAME 1024
 #define CTRL_SET 0x03
 #define CTRL_DISC 0x0B
 #define CTRL_UA 0x07

@@ -63,7 +63,6 @@ int main(int argc, char** argv)
     port = llopen(argv[1], TRANSMITTER);
 
 	// read file do transmit
-
 	buffer = (char*) malloc( sizeof(char) * PAYLOAD);
 	fd = open(argv[2],O_RDONLY);
 	if(fd){
@@ -84,7 +83,9 @@ int main(int argc, char** argv)
 			total_read+=bytes_read;
 			total_write+=bytes_write;
 		}
-		while(bytes_left>0);
+		while(bytes_left>0 && bytes_write>=0);
+		if(bytes_left > 0)
+			printf("Transfer fail due to MAX_ATTEMPTS (%d)\n",MAX_ATTEMPTS);
 		// printf("Número de bytes lidos: %d\n",total_read); //10968
 		// printf("Número de bytes escritos: %d\n",total_write); //10968
 	}
