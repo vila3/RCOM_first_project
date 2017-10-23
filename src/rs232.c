@@ -10,14 +10,19 @@
 
 #include "rs232.h"
 
+<<<<<<< HEAD
 int debugging = 0;
 int flag=1, attempts=1, stop=0, interrupt_alarm=0;
+=======
+int debugging = 1;
+int flag=1, attempts=0, stop=0, interrupt_alarm=0;
+>>>>>>> 560343aa6b6eaf70415c17682512b02804d5dc14
 static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
 	if(!interrupt_alarm)
-		printf("Passaram 3 segundos: # %d, vamos tentar novamente\n", attempts);
+		printf("3 seconds have passed: # %d, tries left: %d\n", attempts+1,MAX_ATTEMPTS-attempts-1);
 	flag=1;
 	attempts++;
 }
@@ -150,7 +155,7 @@ int receive_frame(int fd, char** buff) {
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
 
-  while (init_frame==FALSE) {       /* loop for input */
+  while (init_frame==FALSE && !flag) {       /* loop for input */
     read(fd,&tmp,1);
     if (tmp== 0x7E)
 		{
@@ -162,7 +167,7 @@ int receive_frame(int fd, char** buff) {
 	/* verify repeated flag */
 	read(fd, &tmp, 1);
     if (tmp != 0x7E) (*buff)[i++] = tmp;
-	while (i < 2 * MAX_FRAME) {
+	while (i < 2 * MAX_FRAME && !flag) {
 		read(fd, &tmp, 1);
     	if (tmp == 0x7E) break;
     	(*buff)[i++] = tmp;
@@ -405,7 +410,7 @@ int llclose(int fd) {
       exit(-1);
     }
 
-		if (stop!=1) {
+		if (stop!=1 && (attempts < MAX_ATTEMPTS) ) {
 			char frame1[MAX_FRAME]={0x7e};
 			do{
 				n=-1;
@@ -458,25 +463,34 @@ int llwrite(int fd, char *data, int length){
 	char from_address, ctrl;
 	// Include a string in a frame and send it
 	char frame1[MAX_FRAME]={0x7e};
+	attempts=0;
 	do{
 		if(create_frame(frame1, ( ctrl_state << 6 )))
 		{
+			ctrl=-1;
+			//printf("ctrl send: %x\n", ctrl_state);
 			send_frame(fd, frame1,data,length);
 
+			// printf("Start timer\n");
 			// Start timer
 			if(flag){
 				interrupt_alarm=0;
+				// printf("interrupt_alarm: %d\n", interrupt_alarm);
 				alarm(3);	// activate timer of 3s
 				flag=0;
 			}
+			// printf("reading..\n");
 			do
 			{
 				n =	receive_frame(fd, &buf);
+				 //printf("receive_frame return: %d \n", n);
 			}while(n<0 && !flag);
-
+			// printf("stop reading..\n");
+			//printf("Flag: %d, Attempts: %d\n",flag,attempts);
 			if(flag)	continue;
 			interrupt_alarm=1;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
+			//printf("ctrl received: %x\n", ctrl>>7);
 			ctrl_rr = CTRL_RR | ((ctrl_state+1)%2)<<7;
 		}
 	}
