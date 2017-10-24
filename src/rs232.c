@@ -10,7 +10,7 @@
 
 #include "rs232.h"
 
-int debugging = 1;
+int debugging = 0;
 int flag=1, attempts=0, stop=0, interrupt_alarm=0;
 
 static char ctrl_state=0;
