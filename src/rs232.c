@@ -17,10 +17,19 @@ static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
+<<<<<<< HEAD
 	// if(!interrupt_alarm)
 		printf("3 seconds have passed: # %d, tries left: %d\n", attempts+1,MAX_ATTEMPTS-attempts-1);
 	flag=1;
 	attempts++;
+=======
+	if(!interrupt_alarm){
+			printf("3 seconds have passed: # %d, tries left: %d\n", attempts+1,MAX_ATTEMPTS-attempts-1);
+		flag=1;
+		attempts++;
+	}
+
+>>>>>>> 9a43f96b2640ba7564389ebba636c63304172f30
 }
 
 void print_frame(char *frame, int len) {
@@ -278,7 +287,7 @@ int llopen(char* serial_port, int mode) {
 			}
 
 			if(flag)	continue;
-			interrupt_alarm=1;
+			flag=interrupt_alarm=1;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 		}
@@ -413,7 +422,7 @@ int llclose(int fd) {
 					}
 
 					if(flag)	continue;
-					interrupt_alarm=1;
+					flag=interrupt_alarm=1;
 					n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 					printf("%c",ctrl);
@@ -478,7 +487,7 @@ int llwrite(int fd, char *data, int length){
 			// printf("stop reading..\n");
 			//printf("Flag: %d, Attempts: %d\n",flag,attempts);
 			if(flag)	continue;
-			interrupt_alarm=1;
+			flag=interrupt_alarm=1;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
 			//printf("ctrl received: %x\n", ctrl>>7);
 			ctrl_rr = CTRL_RR | ((ctrl_state+1)%2)<<7;
