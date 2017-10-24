@@ -17,19 +17,12 @@ static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
-<<<<<<< HEAD
-	// if(!interrupt_alarm)
-		printf("3 seconds have passed: # %d, tries left: %d\n", attempts+1,MAX_ATTEMPTS-attempts-1);
-	flag=1;
-	attempts++;
-=======
 	if(!interrupt_alarm){
 			printf("3 seconds have passed: # %d, tries left: %d\n", attempts+1,MAX_ATTEMPTS-attempts-1);
 		flag=1;
 		attempts++;
 	}
 
->>>>>>> 9a43f96b2640ba7564389ebba636c63304172f30
 }
 
 void print_frame(char *frame, int len) {
