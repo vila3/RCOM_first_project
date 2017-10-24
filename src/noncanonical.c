@@ -83,8 +83,8 @@ int main(int argc, char** argv)
 	// printf("size: %d\n", file_size);
 	// printf("name: %s\n", name);
 
-	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i;
-	char *file_arr, *pack_data;
+	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i, name_size=0;
+	char *file_arr, *pack_data, *name;
 
 	port=llopen(argv[1], RECEIVER);
 
@@ -101,8 +101,8 @@ int main(int argc, char** argv)
 	  	if (data[0]==PACK_START || data[0]==PACK_END) {
 
 		  	file_size = read_package_ctr_size(data, n);
-			// name_size = read_package_ctr_name(pack, n, &name);
-			// printf("name: %s\n", name);
+			name_size = read_package_ctr_name(data, n, &name);
+			printf("name: %s\n", name);
 			printf("file size: %d\n", file_size);
 			if (!file_arr_init) {
 				file_arr = malloc(file_size);
@@ -112,6 +112,7 @@ int main(int argc, char** argv)
 		} else {
 			if (file_arr_init) {
 				pack_data_size = read_package_data(data, &pack_data, &seq);
+				printf("seq: %d\n", seq);
 				write(fd, pack_data, pack_data_size);
 				// memcpy(file_arr+bytes_read, pack_data, pack_data_size);
 				free(pack_data);

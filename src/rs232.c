@@ -10,7 +10,7 @@
 
 #include "rs232.h"
 
-int debugging = 1;
+int debugging = 0;
 int flag=1, attempts=0, stop=0, interrupt_alarm=0;
 
 static char ctrl_state=0;
@@ -335,7 +335,7 @@ int llread(int fd, char* buff) {
 		while (n<0) {
 			n =	receive_frame(fd, &buf);
 		}
-		print_frame(buff, n);
+		// print_frame(buff, n);
 		n = read_frame(buf, n, buff, &from_address, &ctrl);
 
 		if (ctrl == CTRL_DISC) {
@@ -348,7 +348,7 @@ int llread(int fd, char* buff) {
 				do {
 					n =	receive_frame(fd, &buf);
 				} while (n<0);
-				print_frame(buf, n);
+				// print_frame(buf, n);
 				n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 				if (ctrl == CTRL_DISC) {
