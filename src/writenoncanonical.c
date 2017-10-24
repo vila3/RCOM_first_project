@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <libgen.h>
 #include "rs232.h"
 
 #define PACK_HEAD_LEN 4
@@ -16,8 +16,8 @@
 #define PACK_DATA 1
 #define PACK_END 3
 
-int create_packages(char *buffer, char **plbuffer, int data_size, char ctrl, int filesize, char sequence_number){
-	int i, w=0,d;
+int create_packages(char *buffer, char **plbuffer, int data_size, char ctrl, int filesize, char *sequence_number, char *filename){
+	int i, w=0;
 	*plbuffer = (char*) malloc(sizeof(char)*PAYLOAD);
 
 	(*plbuffer)[w++]=ctrl; // Control field
@@ -32,35 +32,39 @@ int create_packages(char *buffer, char **plbuffer, int data_size, char ctrl, int
 		for(i=0; i < sizeof(int); i++){
 			(*plbuffer)[w++]=0xff&(filesize>>( (sizeof(int)-1-i) *8));
 		}
+
+		// Type, length and Value
+		(*plbuffer)[w++]=0x01; // T1=0 - File size
+		(*plbuffer)[w++]=(char)strlen(filename); // L1=2 - Length of V (next field)
+
+		for(i=0; i < strlen(filename); i++){
+			(*plbuffer)[w++]=filename[i];
+		}
+
 	} else{
 		// insert
-		(*plbuffer)[w++]=sequence_number;//TODO sequence_number; // N - Sequence (N)umber
+		(*plbuffer)[w++]=*sequence_number;// N - Sequence (N)umber
 		(*plbuffer)[w++]=(data_size>>8)&0xff; // L2 - MSB
 		(*plbuffer)[w++]=data_size&0xff; // L1 - LSB
-		printf("Data size: %d\n",data_size);
-		printf("L2 (MSB):%x",(*plbuffer)[w-2]);
-		printf("\nL1 (LSB):%x",(*plbuffer)[w-1]);
 		// loop for insert
 		for(i=w; i < PACK_NET_LEN+w; i++){
 			(*plbuffer)[i]=(buffer[i-w]);
 		}
 		w=i;
+		(*sequence_number)++;
 	}
-	printf("\nPacote: ");
-	for(d=0;d<w;d++){
-		printf("%x ",(*plbuffer)[d]);
-	}printf("\n");
 	return w;
 }
 
 int main(int argc, char** argv)
 {
+	char *filename;
 	int port,fd;
 	ssize_t bytes_read=0, bytes_write;
 	char *buffer,*plbuffer;
 	int debugging=0;
 	//int i;
-	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0, pack_size;
+	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0, pack_size, name_size;
 	char sequence_number=0;
 	// read port
 	if ( (argc < 2) ||
@@ -74,14 +78,15 @@ int main(int argc, char** argv)
 	// read file do transmit
 	buffer = (char*) malloc( sizeof(char) * PACK_NET_LEN);
 	fd = open(argv[2],O_RDONLY);
+	filename=basename(argv[2]);
 	if(fd){
 		if(debugging)
 			printf("Ficheiro aberto!\n");
 
-			bytes_left=file_byte_size=lseek(fd,0,SEEK_END);
-			lseek(fd,0,SEEK_SET);
+		bytes_left=file_byte_size=lseek(fd,0,SEEK_END);
+		lseek(fd,0,SEEK_SET);
 
-		pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_START,file_byte_size,sequence_number);
+		pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_START,file_byte_size,&sequence_number,filename);
 		llwrite(port,plbuffer,pack_size);
 		do{
 			lseek(fd,file_byte_size-bytes_left,SEEK_SET);
@@ -90,7 +95,7 @@ int main(int argc, char** argv)
 			bytes_read=read(fd,buffer,read_size);
 
 			// Test PL
-			pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_DATA,file_byte_size,sequence_number);
+			pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_DATA,file_byte_size,&sequence_number,NULL);
 			//
 
 			bytes_write=llwrite(port,plbuffer,pack_size);
@@ -103,7 +108,7 @@ int main(int argc, char** argv)
 
 		if(bytes_left > 0){
 			printf("Transfer fail due to MAX_ATTEMPTS (%d)\n",MAX_ATTEMPTS);
-			pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_END,file_byte_size,sequence_number);
+			pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_END,file_byte_size,&sequence_number,filename);
 			llwrite(port,plbuffer,pack_size);
 		}
 
