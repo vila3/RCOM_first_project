@@ -17,7 +17,7 @@ static char ctrl_state=0;
 
 void timeout_handler()                   // answer alarm
 {
-	if(!interrupt_alarm)
+	// if(!interrupt_alarm)
 		printf("3 seconds have passed: # %d, tries left: %d\n", attempts+1,MAX_ATTEMPTS-attempts-1);
 	flag=1;
 	attempts++;
@@ -321,10 +321,9 @@ int llopen(char* serial_port, int mode) {
 	return fd;
 }
 
-int llread(int fd, char** buff) {
+int llread(int fd, char* buff) {
 	char *buf, from_address, ctrl, frame1[2*MAX_FRAME] = {0x7e};
 	int n;
-	char *data;
 
 	if (debugging)
 			printf("\nWaiting transmission...\n");
@@ -334,11 +333,10 @@ int llread(int fd, char** buff) {
 		while (n<0) {
 			n =	receive_frame(fd, &buf);
 		}
-		data = (char *) malloc( sizeof(char) * ( n - 3 ) );
-		n = read_frame(buf, n, data, &from_address, &ctrl);
+		print_frame(buff, n);
+		n = read_frame(buf, n, buff, &from_address, &ctrl);
 
 		if (ctrl == CTRL_DISC) {
-
 			if(create_frame(frame1, CTRL_DISC))
 			{
 				send_frame(fd, frame1,NULL,0);
@@ -349,12 +347,7 @@ int llread(int fd, char** buff) {
 					n =	receive_frame(fd, &buf);
 				} while (n<0);
 				print_frame(buf, n);
-				data = (char *) malloc( sizeof(char) * ( n - 3 ) );
-				n = read_frame(buf, n, data, &from_address, &ctrl);
-
-				printf("n: %d\n", n);
-				printf("ctrl: %x\n", ctrl);
-				printf("ctrl_ua: %x\n", CTRL_UA);
+				n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 				if (ctrl == CTRL_DISC) {
 					if(create_frame(frame1, CTRL_DISC))
@@ -391,7 +384,6 @@ int llread(int fd, char** buff) {
 	} while(ctrl_state != ctrl || n<0);
 
 	ctrl_state = (ctrl_state+1)%2;
-	*buff = data;
 
 	return n;
 }

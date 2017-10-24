@@ -24,7 +24,7 @@ int read_package_ctr_size(char *pack, int pack_len) {
 	for (i = 1; i < pack_len; i++) {
 		if(pack[i] == PACK_T_SIZE) {
 			for (j = pack[i+1]; j > 0; j--) {
-				file_size |= pack[i+1+j]<<(pack[i+1] - j)*8;
+				file_size |= (pack[i+1+j]&0xff)<<(pack[i+1] - j)*8;
 			}
 			return file_size;
 		}
@@ -59,11 +59,10 @@ int read_package_data(char *pack, char **data, int *seq) {
 
 	*seq = pack[1];
 
-	pack_size = pack[2]<<8 | pack[3];
-	printf("pack_size: %d\n", pack_size);
+	pack_size = (pack[2]<<8) | (pack[3]&0xff);
 	*data = malloc(pack_size);
 	for (i = 0; i < pack_size; i++) {
-		*data[i] = pack[4+i];
+		(*data)[i] = pack[4+i];
 	}
 
 	return pack_size;
@@ -84,49 +83,44 @@ int main(int argc, char** argv)
 	// printf("size: %d\n", file_size);
 	// printf("name: %s\n", name);
 
-    int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i;
+	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i;
 	char *file_arr, *pack_data;
 
-    port=llopen(argv[1], RECEIVER);
+	port=llopen(argv[1], RECEIVER);
 
 
-    char *data;
+	char data[MAX_FRAME];
+	fd = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR);
 
-    do {
-      n = llread(port,&data);
-	  print_frame(data, n);
-      if (n<=0) break;
+	do {
+		n = llread(port,data);
+		if (n<=0) break;
 
-	  if (data[0]==PACK_START || data[0]==PACK_END) {
-	  	file_size = read_package_ctr_size(data, n);
-		// name_size = read_package_ctr_name(pack, n, &name);
-		// printf("name: %s\n", name);
-		printf("file size: %d\n", file_size);
-		if (!file_arr_init) {
-			file_arr = malloc(file_size);
-			file_arr_init = 1;
+		// print_frame(data, n);
+
+	  	if (data[0]==PACK_START || data[0]==PACK_END) {
+
+		  	file_size = read_package_ctr_size(data, n);
+			// name_size = read_package_ctr_name(pack, n, &name);
+			// printf("name: %s\n", name);
+			printf("file size: %d\n", file_size);
+			if (!file_arr_init) {
+				file_arr = malloc(file_size);
+				file_arr_init = 1;
+			}
+
+		} else {
+			if (file_arr_init) {
+				pack_data_size = read_package_data(data, &pack_data, &seq);
+				write(fd, pack_data, pack_data_size);
+				// memcpy(file_arr+bytes_read, pack_data, pack_data_size);
+				free(pack_data);
+				pack_data = NULL;
+				bytes_read+=pack_data_size;
+			}
 		}
-
-		if (data[0]==PACK_END) {
-			break;
-		}
-	} else {
-		  if (file_arr_init) {
-			  pack_data_size = read_package_data(data, &pack_data, &seq);
-			  for (i = 0; i < pack_data_size; i++) {
-			  	printf("%c", pack_data[i]);
-			  }
-			  printf("\n");
-			  memcpy(file_arr+bytes_read, pack_data, pack_data_size);
-			  free(pack_data);
-			  data = NULL;
-			  bytes_read+=pack_data_size;
-		  }
-	  }
     } while(1);
 
-	fd = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR);
-	write(fd, data, n);
 	close(fd);
 
     llclose(port);

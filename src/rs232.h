@@ -31,8 +31,8 @@ void print_frame(char *frame, int len);
 
 int llopen(char* serial_port, int mode);
 
-int llread();
+int llread(int fd, char *buff);
 
-int llclose();
+int llclose(int fd);
 
 int llwrite(int fd, char *data, int length);
