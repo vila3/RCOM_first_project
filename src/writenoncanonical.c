@@ -51,7 +51,8 @@ int create_packages(char *buffer, char **plbuffer, int data_size, char ctrl, int
 			(*plbuffer)[i]=(buffer[i-w]);
 		}
 		w=i;
-		(*sequence_number)++;
+		printf("Sqn_n: %u\n",(unsigned char)*sequence_number);
+		(*sequence_number)=( (*sequence_number)+1 )%256;
 	}
 	return w;
 }
@@ -108,6 +109,7 @@ int main(int argc, char** argv)
 
 		if(bytes_left > 0){
 			printf("Transfer fail due to MAX_ATTEMPTS (%d)\n",MAX_ATTEMPTS);
+		}else{
 			pack_size=create_packages(buffer,&plbuffer,bytes_read,PACK_END,file_byte_size,&sequence_number,filename);
 			llwrite(port,plbuffer,pack_size);
 		}
