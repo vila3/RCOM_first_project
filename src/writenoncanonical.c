@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	char *buffer,*plbuffer;
 	int debugging=0;
 	//int i;
-	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0, pack_size, name_size;
+	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0, pack_size;
 	char sequence_number=0;
 	// read port
 	if ( (argc < 2) ||

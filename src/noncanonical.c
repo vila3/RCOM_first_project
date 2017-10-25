@@ -35,7 +35,7 @@ int read_package_ctr_size(char *pack, int pack_len) {
 	return -1;
 }
 
-int read_package_ctr_name(char *pack, int pack_len, char **name) {
+char* read_package_ctr_name(char *pack, int pack_len) {
 	int i, j;
 	char *new_name;
 	for (i = 1; i < pack_len; i++) {
@@ -44,14 +44,13 @@ int read_package_ctr_name(char *pack, int pack_len, char **name) {
 			for (j = 0; j < pack[i+1]; j++) {
 				new_name[j] = pack[i+2+j];
 			}
-			*name = new_name;
-			return pack[i+1];
+			return new_name;
 		}
 		i++;
 		i += pack[i];
 	}
 
-	return -1;
+	return NULL;
 }
 
 int read_package_data(char *pack, char **data, int *seq) {
@@ -83,8 +82,8 @@ int main(int argc, char** argv)
 	// printf("size: %d\n", file_size);
 	// printf("name: %s\n", name);
 
-	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq, i, name_size=0;
-	char *file_arr, *pack_data, *name;
+	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq;
+	char *pack_data, *name;
 
 	port=llopen(argv[1], RECEIVER);
 
@@ -101,18 +100,17 @@ int main(int argc, char** argv)
 	  	if (data[0]==PACK_START || data[0]==PACK_END) {
 
 		  	file_size = read_package_ctr_size(data, n);
-			name_size = read_package_ctr_name(data, n, &name);
+			name = read_package_ctr_name(data, n);
 			printf("name: %s\n", name);
 			printf("file size: %d\n", file_size);
 			if (!file_arr_init) {
-				file_arr = malloc(file_size);
 				file_arr_init = 1;
 			}
 
 		} else {
 			if (file_arr_init) {
 				pack_data_size = read_package_data(data, &pack_data, &seq);
-				printf("seq: %d\n", seq);
+				printf("seq: %u\n", (unsigned char) seq);
 				write(fd, pack_data, pack_data_size);
 				// memcpy(file_arr+bytes_read, pack_data, pack_data_size);
 				free(pack_data);
