@@ -6,6 +6,7 @@
 #include <termios.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "rs232.h"
 
@@ -85,6 +86,10 @@ int main(int argc, char** argv)
 	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq;
 	char *pack_data, *name;
 
+	// Stats
+	int first_bit = 0, n_frames=0;
+	struct timeval start, end;
+
 	port=llopen(argv[1], RECEIVER);
 
 
@@ -93,7 +98,15 @@ int main(int argc, char** argv)
 
 	do {
 		n = llread(port,data);
+
+		if (!first_bit) {
+			gettimeofday(&start, NULL);
+			first_bit = 1;
+		}
+
 		if (n<=0) break;
+
+		n_frames++;
 
 		// print_frame(data, n);
 
@@ -119,6 +132,13 @@ int main(int argc, char** argv)
 			}
 		}
     } while(1);
+
+		gettimeofday(&end, NULL);
+		unsigned long long t = 1000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000;
+
+		printf("Total time = %llu ms\n", t);
+		printf("Total frames = %d\n", n_frames);
+		printf("Tf = %f\n", (double) t/n_frames);
 
 	close(fd);
 

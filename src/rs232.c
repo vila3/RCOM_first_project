@@ -7,6 +7,8 @@
 #include <string.h>
 #include <unistd.h> // for close
 #include <signal.h> // for timeout
+// #include <time.h>
+#include <sys/time.h>
 
 #include "rs232.h"
 
@@ -140,6 +142,7 @@ int send_frame(int fd, char *frame, char *data, int data_size){
 	frame_size=stuffing(&frame,frame_size);
 
 	write(fd,frame,frame_size); // TODO prever quando  acabar mais cedo
+
 	return n;
 }
 
@@ -152,11 +155,14 @@ int receive_frame(int fd, char** buff) {
 
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
+	// struct timeval start, end;
 
   while (init_frame==FALSE) {       /* loop for input */
     read(fd,&tmp,1);
     if (tmp== 0x7E)
 		{
+
+			// gettimeofday(&start, NULL);
 			init_frame=TRUE;
 			break;
 		}
@@ -171,6 +177,11 @@ int receive_frame(int fd, char** buff) {
     	(*buff)[i++] = tmp;
 	}
 
+	// gettimeofday(&end, NULL);
+	// unsigned long long t = 1000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000;
+	//
+	// printf("Tf = %llu ms\n", t);
+
 	i = destuffing(buff, i);
 
 	return i;
@@ -182,7 +193,8 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 	*from_address = frame[i++];
 	*ctrl = frame[i++];
 
-	if ((*from_address ^ *ctrl) != frame[i++]) {
+	int rand_bcc1_fail = (rand() % 100) + 1;
+	if ((*from_address ^ *ctrl) != frame[i++] || rand_bcc1_fail <= BCC1_FAIL_RATE ) {
 		if (debugging)
 			printf("Bcc1 fail\n");
 		return -1;
@@ -198,7 +210,8 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 
 	if (data == NULL || frame_len < 4) return 0;
 
-	if (bcc2 == bcc_check) {
+	int rand_bcc2_fail = (rand() % 100) + 1;
+	if (bcc2 == bcc_check && rand_bcc2_fail > BCC2_FAIL_RATE) {
 		for(i=0; i<frame_len-4;i++){
 			data[i]=frame[i+3];
 		}

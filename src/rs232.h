@@ -25,6 +25,9 @@
 #define TRANSMITTER 1
 #define RECEIVER 0
 
+#define BCC1_FAIL_RATE 0
+#define BCC2_FAIL_RATE 0
+
 struct termios oldtio,newtio;
 
 void print_frame(char *frame, int len);
