@@ -14,6 +14,7 @@
 
 int debugging = 0;
 int flag=1, attempts=0, stop=0, interrupt_alarm=0;
+int n_bytes=0;
 
 static char ctrl_state=0;
 
@@ -176,6 +177,8 @@ int receive_frame(int fd, char** buff) {
     	if (tmp == 0x7E) break;
     	(*buff)[i++] = tmp;
 	}
+
+	n_bytes+=i;
 
 	// gettimeofday(&end, NULL);
 	// unsigned long long t = 1000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000;
@@ -349,6 +352,7 @@ int llread(int fd, char* buff) {
 			n =	receive_frame(fd, &buf);
 		}
 		// print_frame(buff, n);
+		usleep(1000*TPROP);
 		n = read_frame(buf, n, buff, &from_address, &ctrl);
 
 		if (ctrl == CTRL_DISC) {
@@ -373,6 +377,7 @@ int llread(int fd, char* buff) {
 
 			} while(n<0 || ctrl != CTRL_UA);
 
+			printf("Total bytes = %d\n",n_bytes);
 			stop=1;
 			return 0;
 		} else if (ctrl == CTRL_SET) {

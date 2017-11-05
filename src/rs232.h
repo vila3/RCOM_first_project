@@ -6,13 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BAUDRATE B115200
+#define BAUDRATE B9600
 #define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
 
-#define MAX_FRAME 1024
+#define MAX_FRAME 2048
 #define CTRL_SET 0x03
 #define CTRL_DISC 0x0B
 #define CTRL_UA 0x07
@@ -27,6 +27,7 @@
 
 #define BCC1_FAIL_RATE 0
 #define BCC2_FAIL_RATE 0
+#define TPROP 0 // mseconds
 
 struct termios oldtio,newtio;
 

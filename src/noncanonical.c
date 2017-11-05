@@ -87,9 +87,9 @@ int main(int argc, char** argv)
 	char *pack_data, *name;
 
 	// Stats
-	int first_bit = 0, n_frames=0;
+	int n_frames=0;
 	struct timeval start, end;
-
+	gettimeofday(&start, NULL);
 	port=llopen(argv[1], RECEIVER);
 
 
@@ -98,11 +98,6 @@ int main(int argc, char** argv)
 
 	do {
 		n = llread(port,data);
-
-		if (!first_bit) {
-			gettimeofday(&start, NULL);
-			first_bit = 1;
-		}
 
 		if (n<=0) break;
 
@@ -138,7 +133,7 @@ int main(int argc, char** argv)
 
 		printf("Total time = %llu ms\n", t);
 		printf("Total frames = %d\n", n_frames);
-		printf("Tf = %f\n", (double) t/n_frames);
+		//printf("Tf = %f\n", (double) t/n_frames);
 
 	close(fd);
 
