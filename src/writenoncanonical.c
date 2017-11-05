@@ -21,12 +21,12 @@ int create_packages(char *buffer, char **plbuffer, int data_size, char ctrl, int
 	*plbuffer = (char*) malloc(sizeof(char)*PAYLOAD);
 
 	(*plbuffer)[w++]=ctrl; // Control field
-	//printf("1\n");
+
 	if(ctrl==PACK_START || ctrl==PACK_END){
-		//printf("2\n");
+
 		// Type, length and Value
 		(*plbuffer)[w++]=0x00; // T1=0 - File size
-		//printf("3\n");
+
 		(*plbuffer)[w++]=(char)sizeof(int); // L1=2 - Length of V (next field)
 
 		for(i=0; i < sizeof(int); i++){
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	ssize_t bytes_read=0, bytes_write;
 	char *buffer,*plbuffer;
 	int debugging=0;
-	//int i;
+
 	int file_byte_size, bytes_left, read_size, total_read=0, total_write=0, pack_size;
 	char sequence_number=0;
 	// read port
@@ -114,8 +114,6 @@ int main(int argc, char** argv)
 			llwrite(port,plbuffer,pack_size);
 		}
 
-		// printf("Número de bytes lidos: %d\n",total_read); //10968
-		// printf("Número de bytes escritos: %d\n",total_write); //10968
 	}
 
 	llclose(port);

@@ -156,14 +156,11 @@ int receive_frame(int fd, char** buff) {
 
 	/* Waiting for flag */
 	int i=0, init_frame=FALSE;
-	// struct timeval start, end;
 
   while (init_frame==FALSE) {       /* loop for input */
     read(fd,&tmp,1);
     if (tmp== 0x7E)
 		{
-
-			// gettimeofday(&start, NULL);
 			init_frame=TRUE;
 			break;
 		}
@@ -179,11 +176,6 @@ int receive_frame(int fd, char** buff) {
 	}
 
 	n_bytes+=i;
-
-	// gettimeofday(&end, NULL);
-	// unsigned long long t = 1000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000;
-	//
-	// printf("Tf = %llu ms\n", t);
 
 	i = destuffing(buff, i);
 
@@ -218,8 +210,6 @@ int read_frame(char* frame, int frame_len, char* data, char* from_address, char 
 		for(i=0; i<frame_len-4;i++){
 			data[i]=frame[i+3];
 		}
-
-		// data[i] = 0; // --> explicação?????????
 
 		return i;
 	} else {
@@ -351,7 +341,7 @@ int llread(int fd, char* buff) {
 		while (n<0) {
 			n =	receive_frame(fd, &buf);
 		}
-		// print_frame(buff, n);
+
 		usleep(1000*TPROP);
 		n = read_frame(buf, n, buff, &from_address, &ctrl);
 
@@ -365,7 +355,7 @@ int llread(int fd, char* buff) {
 				do {
 					n =	receive_frame(fd, &buf);
 				} while (n<0);
-				// print_frame(buf, n);
+
 				n = read_frame(buf, n, NULL, &from_address, &ctrl);
 
 				if (ctrl == CTRL_DISC) {
@@ -478,29 +468,26 @@ int llwrite(int fd, char *data, int length){
 		if(create_frame(frame1, ( ctrl_state << 6 )))
 		{
 			ctrl=-1;
-			//printf("ctrl send: %x\n", ctrl_state);
+
 			send_frame(fd, frame1,data,length);
 
-			// printf("Start timer\n");
 			// Start timer
 			if(flag){
 				interrupt_alarm=0;
-				// printf("interrupt_alarm: %d\n", interrupt_alarm);
+
 				alarm(3);	// activate timer of 3s
 				flag=0;
 			}
-			// printf("reading..\n");
+
 			do
 			{
 				n =	receive_frame(fd, &buf);
-				 //printf("receive_frame return: %d \n", n);
 			}while(n<0 && !flag);
-			// printf("stop reading..\n");
-			//printf("Flag: %d, Attempts: %d\n",flag,attempts);
+
 			if(flag)	continue;
 			flag=interrupt_alarm=1;
 			n = read_frame(buf, n, NULL, &from_address, &ctrl);
-			//printf("ctrl received: %x\n", ctrl>>7);
+			
 			ctrl_rr = CTRL_RR | ((ctrl_state+1)%2)<<7;
 		}
 	}

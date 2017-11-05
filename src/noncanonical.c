@@ -71,18 +71,6 @@ int read_package_data(char *pack, char **data, int *seq) {
 int main(int argc, char** argv)
 {
 
-	/**
-	 * Test read functions
-	 */
-
-	// char test[10] = {0x02, 0x01, 0x03, 'a', 'b', '\0', 0x00, 0x02, 0x02, 0x02};
-	// int file_size = read_package_ctr_size(test, 10);
-	// char *name;
-	// int name_size = read_package_ctr_name(test, 10, &name);
-	//
-	// printf("size: %d\n", file_size);
-	// printf("name: %s\n", name);
-
 	int port, n, fd, file_size, file_arr_init=0, bytes_read=0, pack_data_size=0, seq;
 	char *pack_data, *name;
 
@@ -103,8 +91,6 @@ int main(int argc, char** argv)
 
 		n_frames++;
 
-		// print_frame(data, n);
-
 	  	if (data[0]==PACK_START || data[0]==PACK_END) {
 
 		  	file_size = read_package_ctr_size(data, n);
@@ -120,7 +106,7 @@ int main(int argc, char** argv)
 				pack_data_size = read_package_data(data, &pack_data, &seq);
 				printf("seq: %u\n", (unsigned char) seq);
 				write(fd, pack_data, pack_data_size);
-				// memcpy(file_arr+bytes_read, pack_data, pack_data_size);
+
 				free(pack_data);
 				pack_data = NULL;
 				bytes_read+=pack_data_size;
@@ -133,7 +119,6 @@ int main(int argc, char** argv)
 
 		printf("Total time = %llu ms\n", t);
 		printf("Total frames = %d\n", n_frames);
-		//printf("Tf = %f\n", (double) t/n_frames);
 
 	close(fd);
 
